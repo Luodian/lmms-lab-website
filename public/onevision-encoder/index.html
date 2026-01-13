@@ -16,17 +16,20 @@
             font-family: 'Inter', sans-serif;
             color: #1a1a1a;
             line-height: 1.7;
+            background: #ffffff;
         }
 
         /* --- Universal Utils --- */
         .gradient-text {
-            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 700;
+            background-clip: text;
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }
         .hero-bg {
-            background: #f8fafc;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
             border-bottom: 1px solid #e5e7eb;
         }
 
@@ -39,151 +42,186 @@
         }
         .nav-link:hover { color: #0f172a; }
 
-        /* Buttons - Minimalistic with flat design */
+        /* Buttons - Enhanced with gradients and shadows */
         .btn {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.625rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
+            border-radius: 0.5rem;
+            font-weight: 600;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
+            text-decoration: none;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         }
         .btn-primary {
-            background-color: #0f172a;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
         .btn-primary:hover {
-            background-color: #1e293b;
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, #7c8df0 0%, #8b5cb3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(102, 126, 234, 0.4);
         }
 
         .btn-accent {
-            background-color: #f8fafc;
-            color: #0f172a;
-            border-color: #e2e8f0;
+            background-color: #ffffff;
+            color: #667eea;
+            border-color: #667eea;
         }
         .btn-accent:hover {
-            background-color: #f1f5f9;
-            border-color: #cbd5e1;
+            background-color: #667eea;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(102, 126, 234, 0.3);
         }
 
         .btn-secondary {
-            background-color: transparent;
+            background-color: #f8fafc;
             color: #475569;
             border-color: #e2e8f0;
         }
         .btn-secondary:hover {
-            background-color: #f8fafc;
-            color: #0f172a;
+            background-color: #ffffff;
+            color: #667eea;
+            border-color: #667eea;
+            transform: translateY(-2px);
         }
 
-        /* Feature Cards - Cleaner with minimal shadows */
+        /* Feature Cards - Enhanced with gradients and better shadows */
         .feature-card {
-            background-color: transparent;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             padding: 2.5rem 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             border: 1px solid #e5e7eb;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover::before {
+            transform: scaleX(1);
         }
         .feature-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
-            border-color: #d1d5db;
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #667eea;
         }
         .icon-box {
             height: 3rem;
             width: 3rem;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1.25rem;
             font-size: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.2);
         }
 
-        /* --- Table Styles - Clean and minimal --- */
+        /* --- Table Styles - Enhanced with better visuals --- */
         .data-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
+            border-radius: 0.75rem;
+            overflow: hidden;
         }
         .data-table th {
-            padding: 8px 10px;
+            padding: 12px 14px;
             text-align: left;
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
             color: #1a1a1a;
-            background-color: #f9fafb;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             border: 1px solid #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         /* Sticky First Column */
         .data-table .sticky-col {
             position: sticky;
             left: 0;
             z-index: 10;
-            padding: 8px 10px;
+            padding: 12px 14px;
             white-space: nowrap;
-            font-weight: 600;
+            font-weight: 700;
             background-color: #ffffff;
             text-align: left;
             border: 1px solid #e5e7eb;
+            box-shadow: 2px 0 4px -2px rgba(0,0,0,0.08);
         }
         .data-table td {
-            padding: 6px 10px;
+            padding: 10px 14px;
             text-align: left;
             font-size: 0.75rem;
             color: #374151;
             border: 1px solid #e5e7eb;
+            transition: background-color 0.2s ease;
         }
 
         /* Table Hover */
         .data-table tbody tr:not(.section-header):hover td {
-            background-color: #f9fafb;
+            background-color: #f0f9ff;
         }
 
         /* Section Header */
         .section-header td {
             text-align: left;
-            padding: 0.5rem 1rem;
-            background-color: #f3f4f6;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
             font-weight: 700;
             color: #111827;
             font-size: 0.75rem;
-            letter-spacing: 0.02em;
-            border-bottom: 1px solid #e5e7eb;
-            border-top: 1px solid #e5e7eb;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #d1d5db;
+            border-top: 2px solid #d1d5db;
+            text-transform: uppercase;
         }
 
-        /* Highlight Row (Ours) - Orange highlight for OneVision Encoder */
+        /* Highlight Row (Ours) - Purple/blue gradient highlight for OneVision Encoder */
         .row-highlight td {
-            color: #9a3412 !important;
-            font-weight: 600;
-            background-color: #fff7ed;
+            color: #5b21b6 !important;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
         }
         .row-highlight .sticky-col {
-            background-color: #fff7ed !important;
-            box-shadow: 2px 0 4px -2px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+            box-shadow: 2px 0 6px -2px rgba(91, 33, 182, 0.15);
         }
         .highlight-val {
-            background-color: #ffedd5;
-            font-weight: 700 !important;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            font-weight: 800 !important;
+            padding: 4px 8px;
+            border-radius: 0.375rem;
         }
-        /* Orange highlight for OV-Encoder columns */
+        /* Purple/blue highlight for OV-Encoder columns */
         .highlight-orange {
-            background-color: #fff7ed !important;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
         }
         .highlight-orange-header {
-            background-color: #ffedd5 !important;
-            color: #9a3412 !important;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
+            color: #5b21b6 !important;
         }
         .bg-header-gray {
-            background-color: #f3f4f6 !important;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
             color: #111827 !important;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         /* Table Wrapper for MLLM Table */
@@ -209,61 +247,69 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
         }
         .results-table th, .results-table td {
-            padding: 6px 10px;
+            padding: 10px 14px;
             text-align: center;
             border: 1px solid #e5e7eb;
             color: #374151;
+            transition: background-color 0.2s ease;
         }
         .results-table th {
-            background-color: #f9fafb;
-            font-weight: 600;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 700;
             color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .results-table .header-group {
-            background-color: #f3f4f6;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
             color: #111827;
-            font-weight: 600;
+            font-weight: 700;
         }
         .results-table .sub-header {
             font-size: 0.75rem;
-            background-color: #f9fafb;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
             color: #374151;
+            font-weight: 600;
         }
         .results-table .row-header {
             text-align: left;
-            font-weight: 600;
+            font-weight: 700;
             background-color: #ffffff;
-            padding-left: 12px;
+            padding-left: 16px;
         }
         .results-table .row-avg {
-            background-color: #f9fafb;
-            font-weight: 600;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            font-weight: 700;
         }
         .results-table .highlight-ours {
-            background-color: #fff7ed;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
         }
         .results-table .val-up {
             color: #059669;
             font-size: 0.8em;
             margin-left: 4px;
+            font-weight: 700;
         }
         .results-table .val-down {
             color: #dc2626;
             font-size: 0.8em;
             margin-left: 4px;
+            font-weight: 700;
         }
         .results-table .best-val {
-            color: #0f172a;
-            font-weight: 700;
+            color: #5b21b6;
+            font-weight: 800;
         }
         .task-group-cell {
             vertical-align: middle;
-            font-weight: 600;
-            background-color: #fafafa;
-            border-right: 2px solid #d1d5db;
-            padding: 10px 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+            border-right: 3px solid #667eea;
+            padding: 14px 14px;
         }
 
         /* --- Mobile Responsive Styles --- */
@@ -442,11 +488,11 @@
 <body class="text-gray-800 bg-slate-50">
 
     <!-- Navigation -->
-    <nav class="fixed w-full z-50 bg-slate-50/95 backdrop-blur-sm border-b border-gray-200">
+    <nav class="fixed w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0 flex items-center gap-2">
-                    <span class="font-bold text-lg tracking-tight text-gray-900">OneVision Encoder</span>
+                    <span class="font-bold text-xl tracking-tight bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">OneVision Encoder</span>
                 </div>
                 <!-- Desktop Navigation -->
                 <div class="hidden md:block">
@@ -495,31 +541,31 @@
             <h1 class="text-5xl sm:text-7xl font-bold text-gray-900 tracking-tight mb-8 leading-tight">
                 <span class="gradient-text">OneVision Encoder</span>
             </h1>
-            <p class="text-xl sm:text-2xl text-gray-600 font-light mb-6">
+            <p class="text-xl sm:text-2xl text-gray-600 font-light mb-6 max-w-3xl mx-auto">
                 The first HEVC style Vision Transformer with advanced multimodal capabilities
             </p>
 
             <div class="mt-8 text-base text-gray-500">
-                <p class="font-medium">LMMs Lab, Glint Lab, AIM for Health Lab, MVP Lab</p>
+                <p class="font-semibold">LMMs Lab, Glint Lab, AIM for Health Lab, MVP Lab</p>
             </div>
         </div>
     </div>
 
     <!-- Introduction Section -->
-    <section id="abstract" class="py-16 bg-slate-50">
+    <section id="abstract" class="py-20 bg-white">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">Introduction</h3>
-            <p class="text-gray-600 text-base mb-4">
+            <h3 class="text-3xl font-bold text-gray-900 mb-6">Introduction</h3>
+            <p class="text-gray-600 text-base mb-4 leading-relaxed">
                 Video understanding models face a fundamental trade-off: processing more frames captures richer temporal information but increases computation quadratically. Traditional approaches address this through sparse frame sampling, but this discards fine-grained motion dynamics and treats all spatial regions equally—wasting computation on static backgrounds.
             </p>
-            <p class="text-gray-600 text-base mb-4">
-                We present <strong>OneVision Encoder</strong>, a vision transformer that resolves this trade-off using principles from HEVC video compression. Instead of sampling sparse frames densely (all patches from few frames), we sample dense frames sparsely (important patches from many frames). Our codec-style patch selection identifies temporally-salient regions—areas with motion, object interactions, or semantic changes—and processes only these informative patches.
+            <p class="text-gray-600 text-base mb-4 leading-relaxed">
+                We present <strong class="text-purple-700">OneVision Encoder</strong>, a vision transformer that resolves this trade-off using principles from HEVC video compression. Instead of sampling sparse frames densely (all patches from few frames), we sample dense frames sparsely (important patches from many frames). Our codec-style patch selection identifies temporally-salient regions—areas with motion, object interactions, or semantic changes—and processes only these informative patches.
             </p>
-            <p class="text-gray-600 text-base mb-6">
+            <p class="text-gray-600 text-base mb-6 leading-relaxed">
                 Combined with global contrastive learning using a 2M concept bank, OneVision Encoder achieves state-of-the-art results on video benchmarks (MVBench, VideoMME, Perception Test) and image understanding tasks (DocVQA, ChartQA, OCRBench).
             </p>
             <figure class="mt-8 flex flex-col items-center">
-                <img src="images/method.png" alt="OneVision Encoder Method Overview" class="w-full max-w-4xl rounded-lg">
+                <img src="images/method.png" alt="OneVision Encoder Method Overview" class="w-full max-w-4xl rounded-xl shadow-lg">
                 <!-- <figcaption class="text-center text-gray-500 text-xs mt-4 italic max-w-3xl">
                     Overview of the OneVision Encoder architecture: Dense video-codec decomposition, chunk-wise sampling, and contrastive learning with class embeddings.
                 </figcaption> -->
@@ -538,23 +584,23 @@
 
             <!-- 1. Codec-Style Patch Selection (Core Insight) -->
             <div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                <h3 class="text-3xl font-bold text-gray-900 mb-6">
                     Codec-Style Patch Selection
                 </h3>
-                <p class="text-gray-600 text-base mb-4">
+                <p class="text-gray-600 text-base mb-4 leading-relaxed">
                     Traditional video understanding models process frames by uniform temporal sampling—selecting evenly-spaced frames regardless of content. This approach treats all spatial regions equally, wasting computation on redundant background pixels that remain static across frames.
                 </p>
-                <p class="text-gray-600 text-base mb-6">
-                    Inspired by HEVC video compression, our <strong>codec-style approach</strong> identifies and processes only the patches that carry meaningful temporal changes. Just as video codecs encode motion vectors and residuals rather than full frames, we select patches based on their information density—preserving the dynamic, semantically-rich regions while discarding redundant static content.
+                <p class="text-gray-600 text-base mb-6 leading-relaxed">
+                    Inspired by HEVC video compression, our <strong class="text-purple-700">codec-style approach</strong> identifies and processes only the patches that carry meaningful temporal changes. Just as video codecs encode motion vectors and residuals rather than full frames, we select patches based on their information density—preserving the dynamic, semantically-rich regions while discarding redundant static content.
                 </p>
 
                 <!-- Codec Style Input Grid -->
-                <div class="bg-slate-50 rounded-xl p-6 mb-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2 text-center">
+                <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-8 mb-8 shadow-md">
+                    <h4 class="text-xl font-semibold text-gray-800 mb-3 text-center">
                         Codec-Style Input
                     </h4>
-                    <p class="text-gray-500 text-xs text-left mb-4">
-                        Left: Reference frame (t=1) with all patches. Right: Three animated blocks showing consecutive frames (t=2,3,4 → t=5,6,7 → ...), cycling through t=2 to t=64. Each frame shows only salient patches at their spatial positions. The result: <strong>75-98% fewer patches</strong> while retaining the information that matters.
+                    <p class="text-gray-500 text-sm text-left mb-6 leading-relaxed">
+                        Left: Reference frame (t=1) with all patches. Right: Three animated blocks showing consecutive frames (t=2,3,4 → t=5,6,7 → ...), cycling through t=2 to t=64. Each frame shows only salient patches at their spatial positions. The result: <strong class="text-purple-700">75-98% fewer patches</strong> while retaining the information that matters.
                     </p>
                     <div id="image-grid-codec" style="display: block; margin: 0 auto; padding-top: 20px;">
                         <!-- Grid will be generated by JavaScript -->
@@ -562,11 +608,11 @@
                 </div>
 
                 <!-- Sampling Frame Input Grid -->
-                <div class="bg-slate-50 rounded-xl p-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2 text-center">
+                <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-8 shadow-md">
+                    <h4 class="text-xl font-semibold text-gray-800 mb-3 text-center">
                         Traditional Frame Sampling
                     </h4>
-                    <p class="text-gray-500 text-xs text-left mb-4">
+                    <p class="text-gray-500 text-sm text-left mb-6 leading-relaxed">
                         Uniformly samples 4 frames and processes all patches from each. Notice the redundancy: static backgrounds, repeated textures, and unchanging regions are processed multiple times across frames—wasting computation on pixels that add no new information.
                     </p>
                     <div id="image-grid-sampling" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
@@ -577,27 +623,27 @@
 
 
             <!-- 2. Video Processing Pipeline -->
-            <div class="mt-16">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            <div class="mt-20">
+                <h3 class="text-3xl font-bold text-gray-900 mb-6">
                     Video Processing Pipeline
                 </h3>
-                <p class="text-gray-600 text-sm mb-6">
-                    The visualization below demonstrates our complete video processing pipeline. The animation shows four key stages: (1) <strong>Original Video</strong> - a continuous 64-frame stream capturing the full temporal context, (2) <strong>Uniform Frame Sampling</strong> - traditional approach selecting 4-8 evenly-spaced frames, which is simple but lossy and misses inter-frame motion, (3) <strong>Temporal Saliency Detection</strong> - analysis of all 64 frames to identify regions with high temporal information such as motion, appearance changes, and semantic events, and (4) <strong>Codec-Style Patch Extraction</strong> - extraction of only the salient patches in zigzag order, achieving 75-98% compression while preserving temporal dynamics.
+                <p class="text-gray-600 text-base mb-8 leading-relaxed">
+                    The visualization below demonstrates our complete video processing pipeline. The animation shows four key stages: (1) <strong class="text-purple-700">Original Video</strong> - a continuous 64-frame stream capturing the full temporal context, (2) <strong class="text-purple-700">Uniform Frame Sampling</strong> - traditional approach selecting 4-8 evenly-spaced frames, which is simple but lossy and misses inter-frame motion, (3) <strong class="text-purple-700">Temporal Saliency Detection</strong> - analysis of all 64 frames to identify regions with high temporal information such as motion, appearance changes, and semantic events, and (4) <strong class="text-purple-700">Codec-Style Patch Extraction</strong> - extraction of only the salient patches in zigzag order, achieving 75-98% compression while preserving temporal dynamics.
                 </p>
 
                 <!-- Interactive GIF Display with Case Switching -->
                 <div style="max-width: 1100px; margin: 0 auto;">
                     <!-- Outer frame containing both labels and video -->
-                    <div style="border-radius: 0.75rem; padding: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); background: #ffffff;">
+                    <div style="border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
                         <!-- Labels Row - positioned above video container -->
-                        <div class="pipeline-labels" style="display: flex; flex-direction: row; justify-content: space-around; align-items: center; margin-bottom: 0.75rem; padding: 0 0.5rem; flex-wrap: nowrap;">
-                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Original Video</div>
-                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Uniform Frame Sampling</div>
-                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Temporal Saliency Detection</div>
-                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 600; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Codec-Style Patch Extraction</div>
+                        <div class="pipeline-labels" style="display: flex; flex-direction: row; justify-content: space-around; align-items: center; margin-bottom: 1rem; padding: 0 0.5rem; flex-wrap: nowrap;">
+                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 700; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Original Video</div>
+                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 700; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Uniform Frame Sampling</div>
+                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 700; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Temporal Saliency Detection</div>
+                            <div class="pipeline-label" style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 700; color: #1f2937; white-space: nowrap; padding: 0 0.25rem;">Codec-Style Patch Extraction</div>
                         </div>
-                        <div id="pipelineGifContainer" style="position: relative; border-radius: 0.5rem; overflow: hidden;">
-                            <video id="pipelineGifImage" src="images/case1.webm" autoplay loop muted playsinline style="width: 100%; height: auto; border-radius: 0.5rem; display: block; transition: opacity 0.3s ease;"></video>
+                        <div id="pipelineGifContainer" style="position: relative; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            <video id="pipelineGifImage" src="images/case1.webm" autoplay loop muted playsinline style="width: 100%; height: auto; border-radius: 0.75rem; display: block; transition: opacity 0.3s ease;"></video>
                         </div>
                     </div>
 
@@ -629,15 +675,15 @@
             </div>
 
             <!-- 3. Global Contrastive Learning -->
-            <div class="mt-16">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            <div class="mt-20">
+                <h3 class="text-3xl font-bold text-gray-900 mb-6">
                     Global Contrastive Learning
                 </h3>
-                <p class="text-gray-600 text-base mb-4">
-                    Standard contrastive learning (e.g., CLIP) is limited by batch size—negative samples are drawn only from the current batch, typically 32K-64K examples. This creates a narrow view of the embedding space and leads to suboptimal representations. Our approach maintains a <strong>global concept bank of 2M clustered centers</strong>, enabling each training sample to contrast against a diverse, representative set of negatives regardless of batch composition. This produces more discriminative embeddings with better-separated semantic clusters.
+                <p class="text-gray-600 text-base mb-6 leading-relaxed">
+                    Standard contrastive learning (e.g., CLIP) is limited by batch size—negative samples are drawn only from the current batch, typically 32K-64K examples. This creates a narrow view of the embedding space and leads to suboptimal representations. Our approach maintains a <strong class="text-purple-700">global concept bank of 2M clustered centers</strong>, enabling each training sample to contrast against a diverse, representative set of negatives regardless of batch composition. This produces more discriminative embeddings with better-separated semantic clusters.
                 </p>
                 <figure class="figure-centered flex-col">
-                    <video src="images/global_contrastive_comparison.webm" autoplay loop muted playsinline class="w-full max-w-5xl rounded-lg"></video>
+                    <video src="images/global_contrastive_comparison.webm" autoplay loop muted playsinline class="w-full max-w-5xl rounded-xl shadow-lg"></video>
                     <!-- <figcaption class="text-center text-gray-500 text-xs mt-4 italic max-w-3xl">
                         Left: CLIP's batch-level contrastive learning with limited negatives. Right: Our global contrastive approach with clustered positive centers (green) contrasting against 60 diverse negative samples (red/orange) drawn from a 2M concept bank.
                     </figcaption> -->
@@ -816,14 +862,14 @@
             </div>
 
             <!-- Video Compression Performance Section -->
-            <div class="mt-8">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">Patch-Efficient Video Understanding Comparison</h3>
-                <p class="text-gray-600 mb-3 text-base">
+            <div class="mt-12">
+                <h3 class="text-3xl font-bold text-gray-900 mb-6">Patch-Efficient Video Understanding Comparison</h3>
+                <p class="text-gray-600 mb-4 text-base leading-relaxed">
                     Efficiency analysis comparing SigLIP2 with dense full-frame patch processing and OV-Encoder-Codec under a fixed token budget. It is important to emphasize that OV-Encoder-Codec does not perform temporal downsampling of the input video. All results are obtained from the same 64-frame (16384 patches) source video, where codec-native motion vectors and residuals are used to selectively extract a fixed number of spatiotemporal patches distributed across the entire temporal extent.
                 </p>
-                <p class="text-gray-600 mb-6 text-base">
+                <p class="text-gray-600 mb-8 text-base leading-relaxed">
                     For a fair comparison, SigLIP2 is evaluated under the same token budgets and adopts a traditional frame sampling strategy, where each group of 256 patches corresponds to a contiguous RGB frame. Under a fixed token budget, OV-Encoder-Codec redistributes patches across time while preserving their spatial positions, enabling long-range temporal coverage. As a result, it outperforms SigLIP2 on Diving48 and Perception Test while reducing patch processing by 75.0%–98.4% compared to dense processing of 16,384 patches.                </p>
-                <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200 max-w-5xl mx-auto">
+                <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-200 max-w-5xl mx-auto">
                     <table class="min-w-full divide-y divide-gray-200 data-table">
                         <colgroup>
                             <col style="width:22%">
@@ -964,10 +1010,10 @@
     </section>
 
     <!-- BibTeX Section -->
-    <section id="bibtex" class="py-16 bg-slate-50">
+    <section id="bibtex" class="py-20 bg-gradient-to-br from-purple-50 to-indigo-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">BibTeX</h3>
-            <div class="bg-slate-50 p-6 max-w-2xl">
+            <h3 class="text-3xl font-bold text-gray-900 mb-6">BibTeX</h3>
+            <div class="bg-white p-8 max-w-2xl rounded-xl shadow-lg border border-gray-200">
                 <pre class="text-sm text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">@article{onevision_encoder_2026,
   title={OneVision Encoder},
   author={LMMs Lab, Glint Lab, AIM for Health Lab, MVP Lab},
@@ -975,14 +1021,14 @@
   year={2026}
 }</pre>
             </div>
-            <p class="text-xs text-gray-500 mt-4 text-center">
+            <p class="text-sm text-gray-500 mt-6 text-center">
                 If you find our work useful, please consider citing our paper.
             </p>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="py-8 bg-slate-900 text-gray-400">
+    <footer class="py-12 bg-gradient-to-r from-purple-900 to-indigo-900 text-gray-300">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-sm">
                 OneVision Encoder &middot; LLaVA-OneVision Community
