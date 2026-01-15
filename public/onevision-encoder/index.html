@@ -296,18 +296,6 @@
             }
         }
 
-        /* Desktop layout for image grids - horizontal display */
-        @media (min-width: 769px) {
-            #image-grid-codec,
-            #image-grid-sampling {
-                display: flex !important;
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                gap: 20px !important;
-                justify-content: flex-start !important;
-            }
-        }
-
         /* --- Mobile Responsive Styles --- */
         @media (max-width: 768px) {
             /* Smooth scrolling for mobile */
@@ -444,28 +432,32 @@
                 padding: 1.5rem 1rem;
             }
 
-            /* Image grid - Better mobile scaling with 2x2 layout */
-            #image-grid-codec,
-            #image-grid-sampling {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
+            /* Image grid - 2x2 layout on mobile */
+            .codec-grid-wrapper {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
                 gap: 1rem !important;
                 width: 100% !important;
                 height: auto !important;
-                transform: none !important;
-                margin-bottom: 0 !important;
-                justify-items: center !important;
             }
             
-            /* Ensure block wrappers fit within grid cells */
-            .codec-block-wrapper,
-            .sampling-block-wrapper {
-                max-width: 100% !important;
+            .codec-block {
+                position: static !important;
+                transform: scale(0.85);
+                transform-origin: center;
+                margin: 0 !important;
             }
             
-            /* Scale individual blocks in the grid */
-            #image-grid-codec .codec-block-wrapper > div:first-child,
-            #image-grid-sampling .sampling-block-wrapper > div:first-child {
+            .sampling-grid-wrapper {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: 1rem !important;
+                width: 100% !important;
+            }
+            
+            .sampling-block {
                 transform: scale(0.85);
                 transform-origin: center;
             }
@@ -603,9 +595,11 @@
                 font-size: 0.5rem !important;
             }
 
-            /* Keep 2x2 grid on extra small devices with slightly smaller scale */
-            #image-grid-codec .codec-block-wrapper > div:first-child,
-            #image-grid-sampling .sampling-block-wrapper > div:first-child {
+            .codec-block {
+                transform: scale(0.75);
+            }
+            
+            .sampling-block {
                 transform: scale(0.75);
             }
 
@@ -1268,10 +1262,11 @@
                 const totalWidth = totalBlocks * blockWidth + (totalBlocks - 1) * blockGap;
                 const totalHeight = GRID_SIZE * cellSize - GAP;
 
-                gridContainer.style.display = 'flex';
-                gridContainer.style.flexWrap = 'wrap';
-                gridContainer.style.gap = blockGap + 'px';
-                gridContainer.style.justifyContent = 'flex-start';
+                gridContainer.style.position = 'relative';
+                gridContainer.style.width = totalWidth + 'px';
+                gridContainer.style.height = (totalHeight + 40) + 'px';
+                gridContainer.style.overflow = 'visible';
+                gridContainer.classList.add('codec-grid-wrapper');
 
                 // group patches by t value: { t: [{h, w, filename}, ...] }
                 const patchesByT = {};
@@ -1280,40 +1275,16 @@
                     patchesByT[p.t].push(p);
                 });
 
-                // Helper function to create a block wrapper
-                function createBlockWrapper(labelText) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'codec-block-wrapper';
-                    wrapper.style.position = 'relative';
-                    wrapper.style.width = blockWidth + 'px';
-                    wrapper.style.height = (totalHeight + 40) + 'px';
-                    
-                    const blockContainer = document.createElement('div');
-                    blockContainer.style.position = 'relative';
-                    blockContainer.style.width = blockWidth + 'px';
-                    blockContainer.style.height = totalHeight + 'px';
-                    
-                    const label = document.createElement('div');
-                    label.style.position = 'absolute';
-                    label.style.left = '50%';
-                    label.style.transform = 'translateX(-50%)';
-                    label.style.top = (totalHeight + 10) + 'px';
-                    label.style.fontSize = '14px';
-                    label.style.fontWeight = '600';
-                    label.style.color = '#1f2937';
-                    label.style.whiteSpace = 'nowrap';
-                    label.textContent = labelText;
-                    
-                    wrapper.appendChild(blockContainer);
-                    wrapper.appendChild(label);
-                    
-                    return { wrapper, blockContainer, label };
-                }
-
                 // Block 0: Static reference frame (t=0, displayed as t=1)
-                const refBlock = createBlockWrapper('t = 1');
-                const refPatches = patchesByT[0] || [];
+                const refBlock = document.createElement('div');
+                refBlock.className = 'codec-block';
+                refBlock.style.position = 'absolute';
+                refBlock.style.left = '0px';
+                refBlock.style.top = '0px';
+                refBlock.style.width = blockWidth + 'px';
+                refBlock.style.height = (totalHeight + 40) + 'px';
                 
+                const refPatches = patchesByT[0] || [];
                 for (let h = 0; h < GRID_SIZE; h++) {
                     for (let w = 0; w < GRID_SIZE; w++) {
                         const imgContainer = document.createElement('div');
@@ -1362,18 +1333,38 @@
                             imgContainer.style.backgroundColor = '#1a1a1a';
                         }
 
-                        refBlock.blockContainer.appendChild(imgContainer);
+                        refBlock.appendChild(imgContainer);
                     }
                 }
-                
-                gridContainer.appendChild(refBlock.wrapper);
 
-                // Animated blocks (3 blocks showing t=2,3,4 etc)
+                // Label for reference block
+                const refLabel = document.createElement('div');
+                refLabel.style.position = 'absolute';
+                refLabel.style.left = (blockWidth / 2 - 20) + 'px';
+                refLabel.style.top = (totalHeight + 10) + 'px';
+                refLabel.style.fontSize = '14px';
+                refLabel.style.fontWeight = '600';
+                refLabel.style.color = '#1f2937';
+                refLabel.textContent = 't = 1';
+                refBlock.appendChild(refLabel);
+                
+                gridContainer.appendChild(refBlock);
+
+                // Animated blocks (2 blocks showing t=2,3 then t=4,5 etc)
                 const animBlocks = [];
                 const animLabels = [];
 
                 for (let blockIdx = 0; blockIdx < NUM_ANIM_BLOCKS; blockIdx++) {
-                    const animBlock = createBlockWrapper('t = ' + (blockIdx + 2));
+                    const blockX = (1 + blockIdx) * (blockWidth + blockGap);
+                    
+                    const animBlock = document.createElement('div');
+                    animBlock.className = 'codec-block';
+                    animBlock.style.position = 'absolute';
+                    animBlock.style.left = blockX + 'px';
+                    animBlock.style.top = '0px';
+                    animBlock.style.width = blockWidth + 'px';
+                    animBlock.style.height = (totalHeight + 40) + 'px';
+                    
                     const gridCells = {};
 
                     for (let h = 0; h < GRID_SIZE; h++) {
@@ -1397,7 +1388,7 @@
                             img.style.objectFit = 'cover';
 
                             imgContainer.appendChild(img);
-                            animBlock.blockContainer.appendChild(imgContainer);
+                            animBlock.appendChild(imgContainer);
                             gridCells[`${h}_${w}`] = { container: imgContainer, img: img };
 
                             imgContainer.addEventListener('mouseenter', function(e) {
@@ -1425,8 +1416,18 @@
                     }
 
                     animBlocks.push(gridCells);
-                    animLabels.push(animBlock.label);
-                    gridContainer.appendChild(animBlock.wrapper);
+
+                    const label = document.createElement('div');
+                    label.style.position = 'absolute';
+                    label.style.left = (blockWidth / 2 - 20) + 'px';
+                    label.style.top = (totalHeight + 10) + 'px';
+                    label.style.fontSize = '14px';
+                    label.style.fontWeight = '600';
+                    label.style.color = '#1f2937';
+                    animBlock.appendChild(label);
+                    animLabels.push(label);
+                    
+                    gridContainer.appendChild(animBlock);
                 }
 
                 let baseT = 1; // start from t=1 (displayed as t=2)
@@ -1483,44 +1484,35 @@
 
             // Standard grid for sampling
             function createImageGrid(gridContainer, fileMap, imageBasePath) {
-                const cellSize = IMAGE_SIZE + GAP;
-                const blockWidth = GRID_SIZE * cellSize - GAP;
-                const blockHeight = GRID_SIZE * cellSize - GAP;
-                const blockGap = 20;
-                
+                gridContainer.classList.add('sampling-grid-wrapper');
                 gridContainer.style.display = 'flex';
-                gridContainer.style.flexWrap = 'wrap';
-                gridContainer.style.gap = blockGap + 'px';
-                gridContainer.style.justifyContent = 'flex-start';
+                gridContainer.style.flexDirection = 'row';
+                gridContainer.style.gap = IMAGE_GAP + 'px';
+                gridContainer.style.flexWrap = 'nowrap';
                 
-                // Frame labels
                 const frameLabels = ['8 frames', '16 frames', '32 frames', '64 frames'];
                 
                 for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
-                    // Create wrapper for each block
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'sampling-block-wrapper';
-                    wrapper.style.position = 'relative';
-                    wrapper.style.width = blockWidth + 'px';
-                    wrapper.style.height = (blockHeight + 40) + 'px';
+                    const blockWrapper = document.createElement('div');
+                    blockWrapper.className = 'sampling-block';
+                    blockWrapper.style.display = 'flex';
+                    blockWrapper.style.flexDirection = 'column';
+                    blockWrapper.style.gap = GAP + 'px';
                     
-                    const blockContainer = document.createElement('div');
-                    blockContainer.style.position = 'relative';
-                    blockContainer.style.width = blockWidth + 'px';
-                    blockContainer.style.height = blockHeight + 'px';
-                    
-                    // Create grid of patches for this block
                     for (let row = 0; row < GRID_SIZE; row++) {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.style.display = 'flex';
+                        rowDiv.style.flexDirection = 'row';
+                        rowDiv.style.gap = GAP + 'px';
+                        rowDiv.style.alignItems = 'center';
+
                         for (let col = 0; col < GRID_SIZE; col++) {
                             const key = `${imgIdx}_${row}_${col}`;
                             const fileInfo = fileMap[key];
 
                             const imgContainer = document.createElement('div');
-                            imgContainer.style.position = 'absolute';
                             imgContainer.style.width = IMAGE_SIZE + 'px';
                             imgContainer.style.height = IMAGE_SIZE + 'px';
-                            imgContainer.style.left = (col * cellSize) + 'px';
-                            imgContainer.style.top = (row * cellSize) + 'px';
                             imgContainer.style.cursor = 'pointer';
                             imgContainer.style.transition = 'all 0.15s';
                             imgContainer.style.overflow = 'hidden';
@@ -1553,6 +1545,7 @@
                                 this.style.transform = 'scale(1.5)';
                                 this.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.3)';
                                 this.style.zIndex = '100';
+                                this.style.position = 'relative';
                                 const t = this.dataset.t || '?';
                                 const h = this.dataset.h || '?';
                                 const w = this.dataset.w || '?';
@@ -1571,28 +1564,27 @@
                                 this.style.transform = 'scale(1)';
                                 this.style.boxShadow = 'none';
                                 this.style.zIndex = '';
+                                this.style.position = '';
                                 tooltip.style.opacity = '0';
                             });
 
-                            blockContainer.appendChild(imgContainer);
+                            rowDiv.appendChild(imgContainer);
                         }
+                        
+                        blockWrapper.appendChild(rowDiv);
                     }
                     
                     // Add label
                     const label = document.createElement('div');
-                    label.style.position = 'absolute';
-                    label.style.left = '50%';
-                    label.style.transform = 'translateX(-50%)';
-                    label.style.top = (blockHeight + 10) + 'px';
+                    label.style.textAlign = 'center';
                     label.style.fontSize = '14px';
                     label.style.fontWeight = '600';
                     label.style.color = '#1f2937';
-                    label.style.whiteSpace = 'nowrap';
+                    label.style.marginTop = '10px';
                     label.textContent = frameLabels[imgIdx];
-                    
-                    wrapper.appendChild(blockContainer);
-                    wrapper.appendChild(label);
-                    gridContainer.appendChild(wrapper);
+                    blockWrapper.appendChild(label);
+
+                    gridContainer.appendChild(blockWrapper);
                 }
             }
 
