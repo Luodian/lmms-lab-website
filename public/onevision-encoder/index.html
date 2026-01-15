@@ -607,20 +607,34 @@
 
         /* Mobile-specific scaling for grid containers */
         @media (max-width: 768px) {
-            /* Codec-Style: 2x2 grid layout on mobile */
+            /* Codec-Style: 2x2 grid layout on mobile with width-based adaptive scaling */
             #image-grid-codec {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 1.5rem;
+                gap: 1rem;
                 width: 100% !important;
                 height: auto !important;
+                padding: 0 0.5rem;
             }
             
             #image-grid-codec .codec-block-wrapper {
                 position: relative !important;
                 left: auto !important;
-                transform-origin: top left;
-                transform: scale(0.9);
+                width: 100%;
+                height: auto;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+            }
+            
+            #image-grid-codec .codec-block-wrapper > div {
+                width: 100% !important;
+                height: auto !important;
+                position: relative !important;
+                transform-origin: top center;
+                /* Scale based on container width to maintain aspect ratio */
+                transform: scale(calc(100vw / 900));
+                max-width: 100%;
             }
             
             /* Traditional Sampling: scale only */
@@ -631,8 +645,14 @@
         }
 
         @media (max-width: 480px) {
-            #image-grid-codec .codec-block-wrapper {
-                transform: scale(0.75);
+            #image-grid-codec {
+                gap: 0.75rem;
+                padding: 0 0.25rem;
+            }
+            
+            #image-grid-codec .codec-block-wrapper > div {
+                /* More aggressive scaling for smaller screens */
+                transform: scale(calc(100vw / 1100));
             }
             
             #image-grid-sampling {
