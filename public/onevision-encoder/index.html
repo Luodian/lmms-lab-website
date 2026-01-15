@@ -607,7 +607,23 @@
 
         /* Mobile-specific scaling for grid containers */
         @media (max-width: 768px) {
-            #image-grid-codec,
+            /* Codec-Style: 2x2 grid layout on mobile */
+            #image-grid-codec {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.5rem;
+                width: 100% !important;
+                height: auto !important;
+            }
+            
+            #image-grid-codec .codec-block-wrapper {
+                position: relative !important;
+                left: auto !important;
+                transform-origin: top left;
+                transform: scale(0.9);
+            }
+            
+            /* Traditional Sampling: scale only */
             #image-grid-sampling {
                 transform-origin: top left;
                 transform: scale(0.45);
@@ -615,7 +631,10 @@
         }
 
         @media (max-width: 480px) {
-            #image-grid-codec,
+            #image-grid-codec .codec-block-wrapper {
+                transform: scale(0.75);
+            }
+            
             #image-grid-sampling {
                 transform-origin: top left;
                 transform: scale(0.35);
@@ -1267,6 +1286,14 @@
                     patchesByT[p.t].push(p);
                 });
 
+                // Create wrapper for reference block (Block 0)
+                const refBlockWrapper = document.createElement('div');
+                refBlockWrapper.className = 'codec-block-wrapper';
+                refBlockWrapper.style.position = 'absolute';
+                refBlockWrapper.style.left = '0px';
+                refBlockWrapper.style.width = blockWidth + 'px';
+                refBlockWrapper.style.height = (totalHeight + 40) + 'px';
+
                 // Block 0: Static reference frame (t=0, displayed as t=1)
                 const refPatches = patchesByT[0] || [];
                 for (let h = 0; h < GRID_SIZE; h++) {
@@ -1317,7 +1344,7 @@
                             imgContainer.style.backgroundColor = '#1a1a1a';
                         }
 
-                        gridContainer.appendChild(imgContainer);
+                        refBlockWrapper.appendChild(imgContainer);
                     }
                 }
 
@@ -1330,14 +1357,24 @@
                 refLabel.style.fontWeight = '600';
                 refLabel.style.color = '#1f2937';
                 refLabel.textContent = 't = 1';
-                gridContainer.appendChild(refLabel);
+                refBlockWrapper.appendChild(refLabel);
+                gridContainer.appendChild(refBlockWrapper);
 
-                // Animated blocks (2 blocks showing t=2,3 then t=4,5 etc)
+                // Animated blocks (3 blocks showing t=2,3,4, etc.)
                 const animBlocks = [];
                 const animLabels = [];
 
                 for (let blockIdx = 0; blockIdx < NUM_ANIM_BLOCKS; blockIdx++) {
                     const blockX = (1 + blockIdx) * (blockWidth + blockGap);
+                    
+                    // Create wrapper for this animated block
+                    const blockWrapper = document.createElement('div');
+                    blockWrapper.className = 'codec-block-wrapper';
+                    blockWrapper.style.position = 'absolute';
+                    blockWrapper.style.left = blockX + 'px';
+                    blockWrapper.style.width = blockWidth + 'px';
+                    blockWrapper.style.height = (totalHeight + 40) + 'px';
+                    
                     const gridCells = {};
 
                     for (let h = 0; h < GRID_SIZE; h++) {
@@ -1346,7 +1383,7 @@
                             imgContainer.style.position = 'absolute';
                             imgContainer.style.width = IMAGE_SIZE + 'px';
                             imgContainer.style.height = IMAGE_SIZE + 'px';
-                            imgContainer.style.left = (blockX + w * cellSize) + 'px';
+                            imgContainer.style.left = (w * cellSize) + 'px';
                             imgContainer.style.top = (h * cellSize) + 'px';
                             imgContainer.style.overflow = 'hidden';
                             imgContainer.style.border = '1px solid #e5e7eb';
@@ -1361,7 +1398,7 @@
                             img.style.objectFit = 'cover';
 
                             imgContainer.appendChild(img);
-                            gridContainer.appendChild(imgContainer);
+                            blockWrapper.appendChild(imgContainer);
                             gridCells[`${h}_${w}`] = { container: imgContainer, img: img };
 
                             imgContainer.addEventListener('mouseenter', function(e) {
@@ -1392,13 +1429,15 @@
 
                     const label = document.createElement('div');
                     label.style.position = 'absolute';
-                    label.style.left = (blockX + blockWidth / 2 - 20) + 'px';
+                    label.style.left = (blockWidth / 2 - 20) + 'px';
                     label.style.top = (totalHeight + 10) + 'px';
                     label.style.fontSize = '14px';
                     label.style.fontWeight = '600';
                     label.style.color = '#1f2937';
-                    gridContainer.appendChild(label);
+                    blockWrapper.appendChild(label);
                     animLabels.push(label);
+                    
+                    gridContainer.appendChild(blockWrapper);
                 }
 
                 let baseT = 1; // start from t=1 (displayed as t=2)
