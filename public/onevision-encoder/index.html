@@ -432,40 +432,14 @@
                 padding: 1.5rem 1rem;
             }
 
-            /* Codec grid - 2x2 layout on mobile */
-            #image-grid-codec {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 1.5rem !important;
-                width: 100% !important;
-                height: auto !important;
-            }
-            
-            #image-grid-codec .block-wrapper {
-                position: static !important;
-                transform: scale(0.9);
-                transform-origin: center;
-                width: auto !important;
-                height: auto !important;
-                left: auto !important;
-                margin: 0 auto !important;
-            }
-            
-            /* Sampling grid - 2x2 layout on mobile */
+            /* Image grid - Better mobile scaling */
+            #image-grid-codec,
             #image-grid-sampling {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 1.5rem !important;
-                width: 100% !important;
+                transform: scale(0.55);
+                transform-origin: top left;
+                margin-bottom: -60px;
             }
-            
-            #image-grid-sampling .sampling-block-wrapper {
-                display: block !important;
-                margin: 0 auto !important;
-                transform: scale(0.9);
-                transform-origin: center;
-            }
-            
+
             /* Image grid containers - Better mobile display */
             .bg-slate-50.rounded-xl {
                 padding: 1rem !important;
@@ -599,9 +573,10 @@
                 font-size: 0.5rem !important;
             }
 
-            #image-grid-codec .block-wrapper,
-            #image-grid-sampling .sampling-block-wrapper {
-                transform: scale(0.75);
+            #image-grid-codec,
+            #image-grid-sampling {
+                transform: scale(0.45);
+                margin-bottom: -80px;
             }
 
             #pipelinePrevBtn,
@@ -627,6 +602,23 @@
             .overflow-x-auto {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Mobile-specific scaling for grid containers */
+        @media (max-width: 768px) {
+            #image-grid-codec,
+            #image-grid-sampling {
+                transform-origin: top left;
+                transform: scale(0.45);
+            }
+        }
+
+        @media (max-width: 480px) {
+            #image-grid-codec,
+            #image-grid-sampling {
+                transform-origin: top left;
+                transform: scale(0.35);
             }
         }
     </style>
@@ -1276,14 +1268,6 @@
                 });
 
                 // Block 0: Static reference frame (t=0, displayed as t=1)
-                const refBlockWrapper = document.createElement('div');
-                refBlockWrapper.className = 'block-wrapper';
-                refBlockWrapper.style.position = 'absolute';
-                refBlockWrapper.style.left = '0px';
-                refBlockWrapper.style.top = '0px';
-                refBlockWrapper.style.width = blockWidth + 'px';
-                refBlockWrapper.style.height = (totalHeight + 40) + 'px';
-                
                 const refPatches = patchesByT[0] || [];
                 for (let h = 0; h < GRID_SIZE; h++) {
                     for (let w = 0; w < GRID_SIZE; w++) {
@@ -1333,7 +1317,7 @@
                             imgContainer.style.backgroundColor = '#1a1a1a';
                         }
 
-                        refBlockWrapper.appendChild(imgContainer);
+                        gridContainer.appendChild(imgContainer);
                     }
                 }
 
@@ -1346,23 +1330,14 @@
                 refLabel.style.fontWeight = '600';
                 refLabel.style.color = '#1f2937';
                 refLabel.textContent = 't = 1';
-                refBlockWrapper.appendChild(refLabel);
-                gridContainer.appendChild(refBlockWrapper);
-                // Animated blocks (3 blocks showing t=2,3,4 then cycling)
+                gridContainer.appendChild(refLabel);
+
+                // Animated blocks (2 blocks showing t=2,3 then t=4,5 etc)
                 const animBlocks = [];
                 const animLabels = [];
 
                 for (let blockIdx = 0; blockIdx < NUM_ANIM_BLOCKS; blockIdx++) {
                     const blockX = (1 + blockIdx) * (blockWidth + blockGap);
-                    
-                    const blockWrapper = document.createElement('div');
-                    blockWrapper.className = 'block-wrapper';
-                    blockWrapper.style.position = 'absolute';
-                    blockWrapper.style.left = blockX + 'px';
-                    blockWrapper.style.top = '0px';
-                    blockWrapper.style.width = blockWidth + 'px';
-                    blockWrapper.style.height = (totalHeight + 40) + 'px';
-                    
                     const gridCells = {};
 
                     for (let h = 0; h < GRID_SIZE; h++) {
@@ -1371,7 +1346,7 @@
                             imgContainer.style.position = 'absolute';
                             imgContainer.style.width = IMAGE_SIZE + 'px';
                             imgContainer.style.height = IMAGE_SIZE + 'px';
-                            imgContainer.style.left = (w * cellSize) + 'px';
+                            imgContainer.style.left = (blockX + w * cellSize) + 'px';
                             imgContainer.style.top = (h * cellSize) + 'px';
                             imgContainer.style.overflow = 'hidden';
                             imgContainer.style.border = '1px solid #e5e7eb';
@@ -1386,7 +1361,7 @@
                             img.style.objectFit = 'cover';
 
                             imgContainer.appendChild(img);
-                            blockWrapper.appendChild(imgContainer);
+                            gridContainer.appendChild(imgContainer);
                             gridCells[`${h}_${w}`] = { container: imgContainer, img: img };
 
                             imgContainer.addEventListener('mouseenter', function(e) {
@@ -1417,15 +1392,13 @@
 
                     const label = document.createElement('div');
                     label.style.position = 'absolute';
-                    label.style.left = (blockWidth / 2 - 20) + 'px';
+                    label.style.left = (blockX + blockWidth / 2 - 20) + 'px';
                     label.style.top = (totalHeight + 10) + 'px';
                     label.style.fontSize = '14px';
                     label.style.fontWeight = '600';
                     label.style.color = '#1f2937';
-                    blockWrapper.appendChild(label);
+                    gridContainer.appendChild(label);
                     animLabels.push(label);
-                    
-                    gridContainer.appendChild(blockWrapper);
                 }
 
                 let baseT = 1; // start from t=1 (displayed as t=2)
@@ -1482,27 +1455,19 @@
 
             // Standard grid for sampling
             function createImageGrid(gridContainer, fileMap, imageBasePath) {
-                const frameLabels = ['8 frames', '16 frames', '32 frames', '64 frames'];
-                
-                // Create block wrappers for each frame group (for mobile 2x2 layout)
-                for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
-                    const blockWrapper = document.createElement('div');
-                    blockWrapper.className = 'sampling-block-wrapper';
-                    
-                    // Desktop: use inline-block for horizontal layout
-                    blockWrapper.style.display = 'inline-block';
-                    blockWrapper.style.verticalAlign = 'top';
-                    if (imgIdx > 0) {
-                        blockWrapper.style.marginLeft = IMAGE_GAP + 'px';
-                    }
-                    
-                    // Create all rows for this frame group
-                    for (let row = 0; row < GRID_SIZE; row++) {
-                        const rowDiv = document.createElement('div');
-                        rowDiv.style.display = 'flex';
-                        rowDiv.style.flexDirection = 'row';
-                        rowDiv.style.gap = GAP + 'px';
-                        rowDiv.style.alignItems = 'center';
+                for (let row = 0; row < GRID_SIZE; row++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.style.display = 'flex';
+                    rowDiv.style.flexDirection = 'row';
+                    rowDiv.style.gap = GAP + 'px';
+                    rowDiv.style.alignItems = 'center';
+
+                    for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
+                        if (imgIdx > 0) {
+                            const spacer = document.createElement('div');
+                            spacer.style.width = IMAGE_GAP + 'px';
+                            rowDiv.appendChild(spacer);
+                        }
 
                         for (let col = 0; col < GRID_SIZE; col++) {
                             const key = `${imgIdx}_${row}_${col}`;
@@ -1521,7 +1486,7 @@
                             img.style.width = '100%';
                             img.style.height = '100%';
                             img.style.objectFit = 'cover';
-                            img.alt = `Patch ${imgIdx}_${row}_${col}`;
+                            img.alt = `Patch ${key}`;
 
                             if (fileInfo) {
                                 img.src = imageBasePath + fileInfo.filename;
@@ -1568,21 +1533,9 @@
 
                             rowDiv.appendChild(imgContainer);
                         }
-                        
-                        blockWrapper.appendChild(rowDiv);
                     }
-                    
-                    // Add label below the frame group
-                    const label = document.createElement('div');
-                    label.style.textAlign = 'center';
-                    label.style.fontSize = '14px';
-                    label.style.fontWeight = '600';
-                    label.style.color = '#1f2937';
-                    label.style.marginTop = '10px';
-                    label.textContent = frameLabels[imgIdx];
-                    blockWrapper.appendChild(label);
-                    
-                    gridContainer.appendChild(blockWrapper);
+
+                    gridContainer.appendChild(rowDiv);
                 }
             }
 
