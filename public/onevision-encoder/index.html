@@ -632,8 +632,8 @@
                 height: auto !important;
                 position: relative !important;
                 transform-origin: top center;
-                /* Scale based on container width to maintain aspect ratio */
-                transform: scale(calc(100vw / 900));
+                /* Scale blocks proportionally for better mobile fit */
+                transform: scale(0.9);
                 max-width: 100%;
             }
             
@@ -652,7 +652,7 @@
             
             #image-grid-codec .codec-block-wrapper > div {
                 /* More aggressive scaling for smaller screens */
-                transform: scale(calc(100vw / 1100));
+                transform: scale(0.75);
             }
             
             #image-grid-sampling {
