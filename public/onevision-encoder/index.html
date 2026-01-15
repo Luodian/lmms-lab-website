@@ -432,33 +432,37 @@
                 padding: 1.5rem 1rem;
             }
 
-            /* Image grid - 2x2 layout on mobile */
-            .codec-grid-wrapper {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                justify-content: center !important;
-                gap: 1rem !important;
+            /* Codec grid - 2x2 layout on mobile */
+            #image-grid-codec {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.5rem !important;
                 width: 100% !important;
                 height: auto !important;
             }
             
-            .codec-block {
+            #image-grid-codec .block-wrapper {
                 position: static !important;
-                transform: scale(0.85);
+                transform: scale(0.9);
                 transform-origin: center;
-                margin: 0 !important;
+                width: auto !important;
+                height: auto !important;
+                left: auto !important;
+                margin: 0 auto !important;
             }
             
-            .sampling-grid-wrapper {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                justify-content: center !important;
-                gap: 1rem !important;
+            /* Sampling grid - 2x2 layout on mobile */
+            #image-grid-sampling {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.5rem !important;
                 width: 100% !important;
             }
             
-            .sampling-block {
-                transform: scale(0.85);
+            #image-grid-sampling .block-wrapper {
+                display: block !important;
+                margin: 0 auto !important;
+                transform: scale(0.9);
                 transform-origin: center;
             }
 
@@ -595,11 +599,8 @@
                 font-size: 0.5rem !important;
             }
 
-            .codec-block {
-                transform: scale(0.75);
-            }
-            
-            .sampling-block {
+            #image-grid-codec .block-wrapper,
+            #image-grid-sampling .block-wrapper {
                 transform: scale(0.75);
             }
 
@@ -1266,7 +1267,6 @@
                 gridContainer.style.width = totalWidth + 'px';
                 gridContainer.style.height = (totalHeight + 40) + 'px';
                 gridContainer.style.overflow = 'visible';
-                gridContainer.classList.add('codec-grid-wrapper');
 
                 // group patches by t value: { t: [{h, w, filename}, ...] }
                 const patchesByT = {};
@@ -1276,13 +1276,13 @@
                 });
 
                 // Block 0: Static reference frame (t=0, displayed as t=1)
-                const refBlock = document.createElement('div');
-                refBlock.className = 'codec-block';
-                refBlock.style.position = 'absolute';
-                refBlock.style.left = '0px';
-                refBlock.style.top = '0px';
-                refBlock.style.width = blockWidth + 'px';
-                refBlock.style.height = (totalHeight + 40) + 'px';
+                const refBlockWrapper = document.createElement('div');
+                refBlockWrapper.className = 'block-wrapper';
+                refBlockWrapper.style.position = 'absolute';
+                refBlockWrapper.style.left = '0px';
+                refBlockWrapper.style.top = '0px';
+                refBlockWrapper.style.width = blockWidth + 'px';
+                refBlockWrapper.style.height = totalHeight + 'px';
                 
                 const refPatches = patchesByT[0] || [];
                 for (let h = 0; h < GRID_SIZE; h++) {
@@ -1333,7 +1333,7 @@
                             imgContainer.style.backgroundColor = '#1a1a1a';
                         }
 
-                        refBlock.appendChild(imgContainer);
+                        refBlockWrapper.appendChild(imgContainer);
                     }
                 }
 
@@ -1346,24 +1346,22 @@
                 refLabel.style.fontWeight = '600';
                 refLabel.style.color = '#1f2937';
                 refLabel.textContent = 't = 1';
-                refBlock.appendChild(refLabel);
-                
-                gridContainer.appendChild(refBlock);
-
-                // Animated blocks (2 blocks showing t=2,3 then t=4,5 etc)
+                refBlockWrapper.appendChild(refLabel);
+                gridContainer.appendChild(refBlockWrapper);
+                // Animated blocks (3 blocks showing t=2,3,4 then cycling)
                 const animBlocks = [];
                 const animLabels = [];
 
                 for (let blockIdx = 0; blockIdx < NUM_ANIM_BLOCKS; blockIdx++) {
                     const blockX = (1 + blockIdx) * (blockWidth + blockGap);
                     
-                    const animBlock = document.createElement('div');
-                    animBlock.className = 'codec-block';
-                    animBlock.style.position = 'absolute';
-                    animBlock.style.left = blockX + 'px';
-                    animBlock.style.top = '0px';
-                    animBlock.style.width = blockWidth + 'px';
-                    animBlock.style.height = (totalHeight + 40) + 'px';
+                    const blockWrapper = document.createElement('div');
+                    blockWrapper.className = 'block-wrapper';
+                    blockWrapper.style.position = 'absolute';
+                    blockWrapper.style.left = blockX + 'px';
+                    blockWrapper.style.top = '0px';
+                    blockWrapper.style.width = blockWidth + 'px';
+                    blockWrapper.style.height = totalHeight + 'px';
                     
                     const gridCells = {};
 
@@ -1388,7 +1386,7 @@
                             img.style.objectFit = 'cover';
 
                             imgContainer.appendChild(img);
-                            animBlock.appendChild(imgContainer);
+                            blockWrapper.appendChild(imgContainer);
                             gridCells[`${h}_${w}`] = { container: imgContainer, img: img };
 
                             imgContainer.addEventListener('mouseenter', function(e) {
@@ -1424,10 +1422,10 @@
                     label.style.fontSize = '14px';
                     label.style.fontWeight = '600';
                     label.style.color = '#1f2937';
-                    animBlock.appendChild(label);
+                    blockWrapper.appendChild(label);
                     animLabels.push(label);
                     
-                    gridContainer.appendChild(animBlock);
+                    gridContainer.appendChild(blockWrapper);
                 }
 
                 let baseT = 1; // start from t=1 (displayed as t=2)
@@ -1484,20 +1482,16 @@
 
             // Standard grid for sampling
             function createImageGrid(gridContainer, fileMap, imageBasePath) {
-                gridContainer.classList.add('sampling-grid-wrapper');
-                gridContainer.style.display = 'flex';
-                gridContainer.style.flexDirection = 'row';
-                gridContainer.style.gap = IMAGE_GAP + 'px';
-                gridContainer.style.flexWrap = 'nowrap';
-                
                 const frameLabels = ['8 frames', '16 frames', '32 frames', '64 frames'];
                 
                 for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
                     const blockWrapper = document.createElement('div');
-                    blockWrapper.className = 'sampling-block';
-                    blockWrapper.style.display = 'flex';
-                    blockWrapper.style.flexDirection = 'column';
-                    blockWrapper.style.gap = GAP + 'px';
+                    blockWrapper.className = 'block-wrapper';
+                    blockWrapper.style.display = 'inline-block';
+                    blockWrapper.style.verticalAlign = 'top';
+                    if (imgIdx > 0) {
+                        blockWrapper.style.marginLeft = IMAGE_GAP + 'px';
+                    }
                     
                     for (let row = 0; row < GRID_SIZE; row++) {
                         const rowDiv = document.createElement('div');
@@ -1574,7 +1568,7 @@
                         blockWrapper.appendChild(rowDiv);
                     }
                     
-                    // Add label
+                    // Add label for each block
                     const label = document.createElement('div');
                     label.style.textAlign = 'center';
                     label.style.fontSize = '14px';
