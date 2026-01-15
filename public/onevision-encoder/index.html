@@ -451,6 +451,21 @@
                 margin: 0 auto !important;
             }
             
+            /* Sampling grid - 2x2 layout on mobile */
+            #image-grid-sampling {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.5rem !important;
+                width: 100% !important;
+            }
+            
+            #image-grid-sampling .sampling-block-wrapper {
+                display: block !important;
+                margin: 0 auto !important;
+                transform: scale(0.9);
+                transform-origin: center;
+            }
+            
             /* Image grid containers - Better mobile display */
             .bg-slate-50.rounded-xl {
                 padding: 1rem !important;
@@ -585,7 +600,7 @@
             }
 
             #image-grid-codec .block-wrapper,
-            #image-grid-sampling .block-wrapper {
+            #image-grid-sampling .sampling-block-wrapper {
                 transform: scale(0.75);
             }
 
@@ -1467,19 +1482,27 @@
 
             // Standard grid for sampling
             function createImageGrid(gridContainer, fileMap, imageBasePath) {
-                for (let row = 0; row < GRID_SIZE; row++) {
-                    const rowDiv = document.createElement('div');
-                    rowDiv.style.display = 'flex';
-                    rowDiv.style.flexDirection = 'row';
-                    rowDiv.style.gap = GAP + 'px';
-                    rowDiv.style.alignItems = 'center';
-
-                    for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
-                        if (imgIdx > 0) {
-                            const spacer = document.createElement('div');
-                            spacer.style.width = IMAGE_GAP + 'px';
-                            rowDiv.appendChild(spacer);
-                        }
+                const frameLabels = ['8 frames', '16 frames', '32 frames', '64 frames'];
+                
+                // Create block wrappers for each frame group (for mobile 2x2 layout)
+                for (let imgIdx = 0; imgIdx < NUM_IMAGES_SAMPLING; imgIdx++) {
+                    const blockWrapper = document.createElement('div');
+                    blockWrapper.className = 'sampling-block-wrapper';
+                    
+                    // Desktop: use inline-block for horizontal layout
+                    blockWrapper.style.display = 'inline-block';
+                    blockWrapper.style.verticalAlign = 'top';
+                    if (imgIdx > 0) {
+                        blockWrapper.style.marginLeft = IMAGE_GAP + 'px';
+                    }
+                    
+                    // Create all rows for this frame group
+                    for (let row = 0; row < GRID_SIZE; row++) {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.style.display = 'flex';
+                        rowDiv.style.flexDirection = 'row';
+                        rowDiv.style.gap = GAP + 'px';
+                        rowDiv.style.alignItems = 'center';
 
                         for (let col = 0; col < GRID_SIZE; col++) {
                             const key = `${imgIdx}_${row}_${col}`;
@@ -1545,9 +1568,21 @@
 
                             rowDiv.appendChild(imgContainer);
                         }
+                        
+                        blockWrapper.appendChild(rowDiv);
                     }
-
-                    gridContainer.appendChild(rowDiv);
+                    
+                    // Add label below the frame group
+                    const label = document.createElement('div');
+                    label.style.textAlign = 'center';
+                    label.style.fontSize = '14px';
+                    label.style.fontWeight = '600';
+                    label.style.color = '#1f2937';
+                    label.style.marginTop = '10px';
+                    label.textContent = frameLabels[imgIdx];
+                    blockWrapper.appendChild(label);
+                    
+                    gridContainer.appendChild(blockWrapper);
                 }
             }
 
