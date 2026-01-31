@@ -30,10 +30,12 @@ interface PixelWorldProps {
 
 const ASSETS = {
 	FOLK: "/assets/sprites/32x32folk.png",
+	PLAYER: "/assets/sprites/sprout-lands/character.png",
 	SERENE: "/assets/tiles/Serene.png",
 };
 
 const CHAR_SIZE = 32;
+const PLAYER_FRAME_SIZE = 48;
 const NPC_IDLE_SPEED = 0.03;
 const PLAYER_SPEED = 2.5;
 const MAP_URL = "/assets/tiles/sprout-lands/village.tmx";
@@ -92,10 +94,10 @@ const WalkingCharacter = ({
 	width: number;
 	height: number;
 }) => {
-	let frameIndex = 1;
-	if (isMoving && textures.length >= 3) {
-		const walkCycle = Math.floor(animTimer * 8) % 4;
-		frameIndex = walkCycle === 0 || walkCycle === 2 ? 1 : walkCycle === 1 ? 0 : 2;
+	let frameIndex = 0;
+	if (isMoving && textures.length >= 2) {
+		const walkCycle = Math.floor(animTimer * 6) % 2;
+		frameIndex = walkCycle;
 	}
 	const texture = textures[frameIndex] || textures[0] || PIXI.Texture.EMPTY;
 	return <pixiSprite texture={texture} x={x} y={y} width={width} height={height} />;
@@ -347,7 +349,7 @@ const GameScene = ({
 	onShowSidebar,
 	showSidebar,
 }: {
-	textures: { folk: PIXI.Texture; serene: PIXI.Texture };
+	textures: { folk: PIXI.Texture; player: PIXI.Texture; serene: PIXI.Texture };
 	tilesetTextures: Record<string, PIXI.Texture>;
 	tmxMap: TMXMap;
 	onShowSidebar: (npc: NPC) => void;
@@ -466,9 +468,38 @@ const GameScene = ({
 		[textures.folk],
 	);
 
+	const getPlayerTextures = useCallback(
+		(direction: Direction, isWalking: boolean) => {
+			const rowMap: Record<Direction, number> = {
+				down: 0,
+				up: 1,
+				left: 2,
+				right: 3,
+			};
+			const row = rowMap[direction];
+			const baseY = row * PLAYER_FRAME_SIZE;
+
+			const startCol = isWalking ? 2 : 0;
+
+			return [0, 1].map(
+				(i) =>
+					new PIXI.Texture({
+						source: textures.player.source,
+						frame: new PIXI.Rectangle(
+							(startCol + i) * PLAYER_FRAME_SIZE,
+							baseY,
+							PLAYER_FRAME_SIZE,
+							PLAYER_FRAME_SIZE,
+						),
+					}),
+			);
+		},
+		[textures.player],
+	);
+
 	const playerTextures = useMemo(
-		() => getCharacterTextures(0, 0, playerState.direction),
-		[playerState.direction, getCharacterTextures],
+		() => getPlayerTextures(playerState.direction, playerState.isMoving),
+		[playerState.direction, playerState.isMoving, getPlayerTextures],
 	);
 
 	const getNpcTextures = useCallback(
@@ -583,6 +614,7 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 	const [loaded, setLoaded] = useState(false);
 	const [textures, setTextures] = useState<{
 		folk: PIXI.Texture;
+		player: PIXI.Texture;
 		serene: PIXI.Texture;
 	} | null>(null);
 	const [tilesetTextures, setTilesetTextures] = useState<Record<string, PIXI.Texture>>({});
@@ -593,8 +625,9 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 	useEffect(() => {
 		const loadAssets = async () => {
 			try {
-				const [folk, serene, mapData] = await Promise.all([
+				const [folk, player, serene, mapData] = await Promise.all([
 					PIXI.Assets.load(ASSETS.FOLK),
+					PIXI.Assets.load(ASSETS.PLAYER),
 					PIXI.Assets.load(ASSETS.SERENE),
 					loadTMX(MAP_URL),
 				]);
@@ -610,7 +643,7 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 					tilesetMap[t.name] = t.texture;
 				}
 
-				setTextures({ folk, serene });
+				setTextures({ folk, player, serene });
 				setTmxMap(mapData);
 				setTilesetTextures(tilesetMap);
 				setLoaded(true);
