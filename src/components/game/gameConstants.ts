@@ -10,6 +10,64 @@ export const GAME_CONFIG: GameConfig = {
 	interactionDistance: 48,
 };
 
+export interface TilesetConfig {
+	firstgid: number;
+	name: string;
+	image: string;
+	tileWidth: number;
+	tileHeight: number;
+	imageWidth: number;
+}
+
+export const TILESETS: TilesetConfig[] = [
+	{
+		firstgid: 1,
+		name: "Grass",
+		image: "/assets/tiles/sprout-lands/Grass.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 176,
+	},
+	{
+		firstgid: 78,
+		name: "Water",
+		image: "/assets/tiles/sprout-lands/Water.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 64,
+	},
+	{
+		firstgid: 82,
+		name: "Paths",
+		image: "/assets/tiles/sprout-lands/Paths.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 64,
+	},
+	{
+		firstgid: 98,
+		name: "Hills",
+		image: "/assets/tiles/sprout-lands/Hills.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 176,
+	},
+];
+
+const TILESETS_SORTED = [...TILESETS].sort((a, b) => b.firstgid - a.firstgid);
+
+export function getTilesetForGid(gid: number): { tileset: TilesetConfig; localId: number } | null {
+	if (gid === 0) return null;
+	for (const tileset of TILESETS_SORTED) {
+		if (gid >= tileset.firstgid) {
+			return { tileset, localId: gid - tileset.firstgid };
+		}
+	}
+	return null;
+}
+
+export const COLLISION_LAYERS = ["water"];
+
 // Stardew Valley inspired color palette
 export const COLORS = {
 	grass: "#7ec850",
@@ -41,56 +99,56 @@ export const COLORS = {
 	svHighlight: "#7ec8e3",
 };
 
-// Initial player state
+// Initial player state - center of 960x640 map
 export const INITIAL_PLAYER: Player = {
 	id: "player",
-	position: { x: 480, y: 350 },
+	position: { x: 464, y: 320 },
 	size: { width: 32, height: 32 },
 	direction: "down",
 	isMoving: false,
 	speed: GAME_CONFIG.playerSpeed,
 };
 
-// NPC definitions for each research area
+// NPC definitions for each research area - positioned for 960x640 map
 export const NPCS: NPC[] = [
 	{
 		id: "npc-models",
 		name: "Dr. Model",
 		label: "Models",
 		tag: "models",
-		position: { x: 464, y: 220 },
+		position: { x: 464, y: 180 },
 		size: { width: 32, height: 32 },
 		dialogue: "Welcome to the Model Lab! Here we develop state-of-the-art multimodal models.",
-		color: "#e57373", // Soft red
+		color: "#e57373",
 	},
 	{
 		id: "npc-tools",
 		name: "Prof. Tool",
 		label: "Tools",
 		tag: "tools",
-		position: { x: 250, y: 340 },
+		position: { x: 200, y: 320 },
 		size: { width: 32, height: 32 },
 		dialogue: "The Tools Workshop! We create frameworks and utilities for AI research.",
-		color: "#64b5f6", // Soft blue
+		color: "#64b5f6",
 	},
 	{
 		id: "npc-research",
 		name: "Scholar Rex",
 		label: "Research",
 		tag: "research",
-		position: { x: 700, y: 340 },
+		position: { x: 728, y: 320 },
 		size: { width: 32, height: 32 },
 		dialogue: "Research Archives! Explore our latest papers and findings.",
-		color: "#ba68c8", // Soft purple
+		color: "#ba68c8",
 	},
 ];
 
-// Buildings for each NPC - Arranged around a town square
+// Buildings for each NPC - Arranged around a town square on 960x640 map
 export const BUILDINGS: Building[] = [
 	{
 		id: "building-models",
 		name: "Model Lab",
-		position: { x: 456, y: 120 }, // North center
+		position: { x: 456, y: 80 },
 		size: { width: 48, height: 80 },
 		color: COLORS.buildingWood,
 		roofColor: COLORS.roofRed,
@@ -98,7 +156,7 @@ export const BUILDINGS: Building[] = [
 	{
 		id: "building-tools",
 		name: "Tools Workshop",
-		position: { x: 180, y: 280 }, // West
+		position: { x: 130, y: 260 },
 		size: { width: 48, height: 80 },
 		color: COLORS.buildingStone,
 		roofColor: COLORS.roofBlue,
@@ -106,7 +164,7 @@ export const BUILDINGS: Building[] = [
 	{
 		id: "building-research",
 		name: "Research Archives",
-		position: { x: 732, y: 280 }, // East
+		position: { x: 782, y: 260 },
 		size: { width: 48, height: 80 },
 		color: COLORS.buildingWood,
 		roofColor: COLORS.roofPurple,

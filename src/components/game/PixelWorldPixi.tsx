@@ -2,8 +2,17 @@ import { Application, extend, useTick } from "@pixi/react";
 import * as PIXI from "pixi.js";
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BUILDINGS, COLORS, GAME_CONFIG, INITIAL_PLAYER, NPCS } from "./gameConstants";
+import {
+	BUILDINGS,
+	COLLISION_LAYERS,
+	COLORS,
+	GAME_CONFIG,
+	INITIAL_PLAYER,
+	NPCS,
+	TILESETS,
+} from "./gameConstants";
 import type { BlogPost, Direction, NPC } from "./gameTypes";
+import { type TMXMap, checkRectTileCollision, getTileAt, loadTMX } from "./tmxLoader";
 import { useKeyboard } from "./useKeyboard";
 
 extend({
@@ -24,10 +33,11 @@ const ASSETS = {
 	SERENE: "/assets/tiles/Serene.png",
 };
 
-const TILE_SIZE = 16;
 const CHAR_SIZE = 32;
 const NPC_IDLE_SPEED = 0.03;
 const PLAYER_SPEED = 2.5;
+const MAP_URL = "/assets/tiles/sprout-lands/village.tmx";
+const TILE_SCALE = 2;
 
 const AnimatedCharacter = ({
 	textures,
@@ -117,167 +127,110 @@ const BouncingPrompt = ({ x, baseY }: { x: number; baseY: number }) => {
 	);
 };
 
-const SereneTile = ({
-	texture,
-	tileX,
-	tileY,
-	x,
-	y,
-	width = TILE_SIZE,
-	height = TILE_SIZE,
-}: {
-	texture: PIXI.Texture;
-	tileX: number;
-	tileY: number;
-	x: number;
-	y: number;
-	width?: number;
-	height?: number;
-}) => {
-	const tileTexture = useMemo(() => {
-		return new PIXI.Texture({
-			source: texture.source,
-			frame: new PIXI.Rectangle(tileX * TILE_SIZE, tileY * TILE_SIZE, width, height),
-		});
-	}, [texture, tileX, tileY, width, height]);
+const TMXTile = memo(
+	({
+		texture,
+		frame,
+		x,
+		y,
+		width,
+		height,
+	}: {
+		texture: PIXI.Texture;
+		frame: PIXI.Rectangle;
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	}) => {
+		const tileTexture = useMemo(() => {
+			return new PIXI.Texture({
+				source: texture.source,
+				frame: frame,
+			});
+		}, [texture, frame]);
 
-	return <pixiSprite texture={tileTexture} x={x} y={y} width={width} height={height} />;
-};
+		return <pixiSprite texture={tileTexture} x={x} y={y} width={width} height={height} />;
+	},
+);
 
-const VillageMap = memo(({ sereneTexture }: { sereneTexture: PIXI.Texture }) => {
-	const tiles = useMemo(() => {
-		const result: React.ReactElement[] = [];
-		const { canvasWidth, canvasHeight } = GAME_CONFIG;
+const TMXMapRenderer = memo(
+	({
+		tmxMap,
+		tilesetTextures,
+		camera,
+	}: {
+		tmxMap: TMXMap;
+		tilesetTextures: Record<string, PIXI.Texture>;
+		camera: { x: number; y: number };
+	}) => {
+		const visibleTiles = useMemo(() => {
+			const tiles: React.ReactElement[] = [];
+			const scaledTileW = tmxMap.tileWidth * TILE_SCALE;
+			const scaledTileH = tmxMap.tileHeight * TILE_SCALE;
 
-		for (let y = 0; y < canvasHeight; y += TILE_SIZE) {
-			for (let x = 0; x < canvasWidth; x += TILE_SIZE) {
-				result.push(
-					<SereneTile
-						key={`grass-${x}-${y}`}
-						texture={sereneTexture}
-						tileX={0}
-						tileY={0}
-						x={x}
-						y={y}
-					/>,
-				);
+			const startX = Math.floor(camera.x / scaledTileW);
+			const startY = Math.floor(camera.y / scaledTileH);
+			const endX = startX + Math.ceil(GAME_CONFIG.canvasWidth / scaledTileW) + 1;
+			const endY = startY + Math.ceil(GAME_CONFIG.canvasHeight / scaledTileH) + 1;
+
+			const clampStartX = Math.max(0, startX);
+			const clampStartY = Math.max(0, startY);
+			const clampEndX = Math.min(tmxMap.width, endX);
+			const clampEndY = Math.min(tmxMap.height, endY);
+
+			for (const layer of tmxMap.layers) {
+				for (let y = clampStartY; y < clampEndY; y++) {
+					for (let x = clampStartX; x < clampEndX; x++) {
+						const gid = getTileAt(layer, x, y);
+						if (gid === 0) continue;
+
+						let tileset: (typeof TILESETS)[number] | null = null;
+						for (let i = TILESETS.length - 1; i >= 0; i--) {
+							const ts = TILESETS[i];
+							if (ts && gid >= ts.firstgid) {
+								tileset = ts;
+								break;
+							}
+						}
+						if (!tileset) continue;
+
+						const texture = tilesetTextures[tileset.name];
+						if (!texture) continue;
+
+						const localId = gid - tileset.firstgid;
+						const tilesPerRow = tileset.imageWidth / tileset.tileWidth;
+						const tileX = localId % tilesPerRow;
+						const tileY = Math.floor(localId / tilesPerRow);
+
+						const frame = new PIXI.Rectangle(
+							tileX * tileset.tileWidth,
+							tileY * tileset.tileHeight,
+							tileset.tileWidth,
+							tileset.tileHeight,
+						);
+
+						tiles.push(
+							<TMXTile
+								key={`${layer.name}-${x}-${y}`}
+								texture={texture}
+								frame={frame}
+								x={x * scaledTileW - camera.x}
+								y={y * scaledTileH - camera.y}
+								width={scaledTileW}
+								height={scaledTileH}
+							/>,
+						);
+					}
+				}
 			}
-		}
 
-		const pathY = 320;
-		for (let x = 0; x < canvasWidth; x += TILE_SIZE) {
-			result.push(
-				<SereneTile
-					key={`path-${x}`}
-					texture={sereneTexture}
-					tileX={1}
-					tileY={1}
-					x={x}
-					y={pathY}
-				/>,
-			);
-			result.push(
-				<SereneTile
-					key={`path2-${x}`}
-					texture={sereneTexture}
-					tileX={1}
-					tileY={1}
-					x={x}
-					y={pathY + TILE_SIZE}
-				/>,
-			);
-		}
+			return tiles;
+		}, [tmxMap, tilesetTextures, camera]);
 
-		const plazaCenterX = canvasWidth / 2 - 80;
-		const plazaCenterY = 280;
-		for (let py = 0; py < 6; py++) {
-			for (let px = 0; px < 10; px++) {
-				result.push(
-					<SereneTile
-						key={`plaza-${px}-${py}`}
-						texture={sereneTexture}
-						tileX={1}
-						tileY={1}
-						x={plazaCenterX + px * TILE_SIZE}
-						y={plazaCenterY + py * TILE_SIZE}
-					/>,
-				);
-			}
-		}
-
-		const treePositions = [
-			{ x: 32, y: 32 },
-			{ x: 96, y: 48 },
-			{ x: 880, y: 32 },
-			{ x: 816, y: 48 },
-			{ x: 32, y: 520 },
-			{ x: 96, y: 536 },
-			{ x: 880, y: 520 },
-			{ x: 816, y: 536 },
-			{ x: 200, y: 80 },
-			{ x: 700, y: 80 },
-			{ x: 200, y: 480 },
-			{ x: 700, y: 480 },
-		];
-
-		for (const pos of treePositions) {
-			result.push(
-				<SereneTile
-					key={`tree-${pos.x}-${pos.y}`}
-					texture={sereneTexture}
-					tileX={0}
-					tileY={7}
-					x={pos.x}
-					y={pos.y}
-					width={48}
-					height={64}
-				/>,
-			);
-		}
-
-		const flowerPositions = [
-			{ x: 150, y: 200, tx: 8 },
-			{ x: 750, y: 200, tx: 9 },
-			{ x: 150, y: 420, tx: 10 },
-			{ x: 750, y: 420, tx: 8 },
-			{ x: 400, y: 150, tx: 9 },
-			{ x: 500, y: 150, tx: 10 },
-			{ x: 400, y: 500, tx: 8 },
-			{ x: 500, y: 500, tx: 9 },
-		];
-
-		for (const pos of flowerPositions) {
-			result.push(
-				<SereneTile
-					key={`flower-${pos.x}-${pos.y}`}
-					texture={sereneTexture}
-					tileX={pos.tx}
-					tileY={4}
-					x={pos.x}
-					y={pos.y}
-				/>,
-			);
-		}
-
-		const fenceY = 240;
-		for (let fx = 0; fx < 8; fx++) {
-			result.push(
-				<SereneTile
-					key={`fence-top-${fx}`}
-					texture={sereneTexture}
-					tileX={4}
-					tileY={5}
-					x={plazaCenterX + 16 + fx * TILE_SIZE}
-					y={fenceY}
-				/>,
-			);
-		}
-
-		return result;
-	}, [sereneTexture]);
-
-	return <pixiContainer>{tiles}</pixiContainer>;
-});
+		return <pixiContainer>{visibleTiles}</pixiContainer>;
+	},
+);
 
 const ControlsPanel = () => (
 	<pixiContainer x={16} y={GAME_CONFIG.canvasHeight - 100}>
@@ -333,7 +286,15 @@ interface PlayerState {
 	animTimer: number;
 }
 
-const checkCollision = (x: number, y: number, width: number, height: number): boolean => {
+const checkCollision = (
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	mapWidth: number,
+	mapHeight: number,
+	tmxMap: TMXMap | null,
+): boolean => {
 	const padding = 8;
 	const playerRect = {
 		left: x + padding,
@@ -362,9 +323,16 @@ const checkCollision = (x: number, y: number, width: number, height: number): bo
 
 	if (
 		playerRect.left < 0 ||
-		playerRect.right > GAME_CONFIG.canvasWidth ||
+		playerRect.right > mapWidth ||
 		playerRect.top < 0 ||
-		playerRect.bottom > GAME_CONFIG.canvasHeight
+		playerRect.bottom > mapHeight
+	) {
+		return true;
+	}
+
+	if (
+		tmxMap &&
+		checkRectTileCollision(tmxMap, x, y, width, height, COLLISION_LAYERS, 4, TILE_SCALE)
 	) {
 		return true;
 	}
@@ -374,10 +342,14 @@ const checkCollision = (x: number, y: number, width: number, height: number): bo
 
 const GameScene = ({
 	textures,
+	tilesetTextures,
+	tmxMap,
 	onShowSidebar,
 	showSidebar,
 }: {
 	textures: { folk: PIXI.Texture; serene: PIXI.Texture };
+	tilesetTextures: Record<string, PIXI.Texture>;
+	tmxMap: TMXMap;
 	onShowSidebar: (npc: NPC) => void;
 	showSidebar: boolean;
 }) => {
@@ -389,6 +361,7 @@ const GameScene = ({
 		animTimer: 0,
 	});
 	const [nearbyNPC, setNearbyNPC] = useState<NPC | null>(null);
+	const [camera, setCamera] = useState({ x: 0, y: 0 });
 
 	const { keys, interactPressed, consumeInteract } = useKeyboard();
 
@@ -432,14 +405,17 @@ const GameScene = ({
 
 			isMoving = dx !== 0 || dy !== 0;
 
+			const mapWidth = tmxMap.width * tmxMap.tileWidth * TILE_SCALE;
+			const mapHeight = tmxMap.height * tmxMap.tileHeight * TILE_SCALE;
+
 			if (isMoving) {
 				const newX = x + dx * ticker.deltaTime;
 				const newY = y + dy * ticker.deltaTime;
 
-				if (!checkCollision(newX, y, CHAR_SIZE, CHAR_SIZE)) {
+				if (!checkCollision(newX, y, CHAR_SIZE, CHAR_SIZE, mapWidth, mapHeight, tmxMap)) {
 					x = newX;
 				}
-				if (!checkCollision(x, newY, CHAR_SIZE, CHAR_SIZE)) {
+				if (!checkCollision(x, newY, CHAR_SIZE, CHAR_SIZE, mapWidth, mapHeight, tmxMap)) {
 					y = newY;
 				}
 
@@ -451,6 +427,19 @@ const GameScene = ({
 
 		setNearbyNPC(getNearbyNPC(playerState.x, playerState.y));
 	});
+
+	useEffect(() => {
+		const mapWidth = tmxMap.width * tmxMap.tileWidth * TILE_SCALE;
+		const mapHeight = tmxMap.height * tmxMap.tileHeight * TILE_SCALE;
+
+		let camX = playerState.x + CHAR_SIZE / 2 - GAME_CONFIG.canvasWidth / 2;
+		let camY = playerState.y + CHAR_SIZE / 2 - GAME_CONFIG.canvasHeight / 2;
+
+		camX = Math.max(0, Math.min(camX, mapWidth - GAME_CONFIG.canvasWidth));
+		camY = Math.max(0, Math.min(camY, mapHeight - GAME_CONFIG.canvasHeight));
+
+		setCamera({ x: camX, y: camY });
+	}, [playerState.x, playerState.y, tmxMap]);
 
 	useEffect(() => {
 		if (interactPressed && nearbyNPC && !showSidebar) {
@@ -502,7 +491,7 @@ const GameScene = ({
 
 			return new PIXI.Texture({
 				source: textures.serene.source,
-				frame: new PIXI.Rectangle(0, tileY * TILE_SIZE, 48, 80),
+				frame: new PIXI.Rectangle(0, tileY * 32, 48, 80),
 			});
 		},
 		[textures.serene],
@@ -518,8 +507,8 @@ const GameScene = ({
 					textures={playerTextures}
 					isMoving={playerState.isMoving}
 					animTimer={playerState.animTimer}
-					x={playerState.x}
-					y={playerState.y}
+					x={playerState.x - camera.x}
+					y={playerState.y - camera.y}
 					width={CHAR_SIZE}
 					height={CHAR_SIZE}
 				/>
@@ -529,7 +518,7 @@ const GameScene = ({
 			id: npc.id,
 			y: npc.position.y + npc.size.height,
 			render: () => (
-				<pixiContainer key={npc.id} x={npc.position.x} y={npc.position.y}>
+				<pixiContainer key={npc.id} x={npc.position.x - camera.x} y={npc.position.y - camera.y}>
 					<AnimatedCharacter
 						textures={getNpcTextures(npc)}
 						isPlaying={true}
@@ -570,8 +559,8 @@ const GameScene = ({
 				<pixiSprite
 					key={building.id}
 					texture={getHouseTexture(building.roofColor)}
-					x={building.position.x}
-					y={building.position.y}
+					x={building.position.x - camera.x}
+					y={building.position.y - camera.y}
 					width={building.size.width}
 					height={building.size.height}
 				/>
@@ -581,7 +570,7 @@ const GameScene = ({
 
 	return (
 		<pixiContainer>
-			<VillageMap sereneTexture={textures.serene} />
+			<TMXMapRenderer tmxMap={tmxMap} tilesetTextures={tilesetTextures} camera={camera} />
 			{entities.map((e) => (
 				<pixiContainer key={e.id}>{e.render()}</pixiContainer>
 			))}
@@ -596,18 +585,34 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 		folk: PIXI.Texture;
 		serene: PIXI.Texture;
 	} | null>(null);
+	const [tilesetTextures, setTilesetTextures] = useState<Record<string, PIXI.Texture>>({});
+	const [tmxMap, setTmxMap] = useState<TMXMap | null>(null);
 	const [activeNPC, setActiveNPC] = useState<NPC | null>(null);
 	const [showSidebar, setShowSidebar] = useState(false);
 
 	useEffect(() => {
 		const loadAssets = async () => {
 			try {
-				const [folk, serene] = await Promise.all([
+				const [folk, serene, mapData] = await Promise.all([
 					PIXI.Assets.load(ASSETS.FOLK),
 					PIXI.Assets.load(ASSETS.SERENE),
+					loadTMX(MAP_URL),
 				]);
 
+				const tilesetPromises = TILESETS.map(async (tileset) => {
+					const texture = await PIXI.Assets.load(tileset.image);
+					return { name: tileset.name, texture };
+				});
+
+				const tilesetsLoaded = await Promise.all(tilesetPromises);
+				const tilesetMap: Record<string, PIXI.Texture> = {};
+				for (const t of tilesetsLoaded) {
+					tilesetMap[t.name] = t.texture;
+				}
+
 				setTextures({ folk, serene });
+				setTmxMap(mapData);
+				setTilesetTextures(tilesetMap);
 				setLoaded(true);
 			} catch (e) {
 				console.error("Failed to load assets", e);
@@ -637,7 +642,7 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 
 	return (
 		<div className="relative w-full min-h-screen bg-[#1a1a2e] flex items-center justify-center overflow-hidden">
-			{loaded && textures ? (
+			{loaded && textures && tmxMap ? (
 				<div className="relative p-2 bg-[#4a4a6a] shadow-[8px_8px_0_0_rgba(0,0,0,0.5)]">
 					<div className="border-4 border-[#2d2d44]">
 						<Application
@@ -648,6 +653,8 @@ export function PixelWorldPixi({ posts }: PixelWorldProps) {
 						>
 							<GameScene
 								textures={textures}
+								tilesetTextures={tilesetTextures}
+								tmxMap={tmxMap}
 								onShowSidebar={handleShowSidebar}
 								showSidebar={showSidebar}
 							/>
