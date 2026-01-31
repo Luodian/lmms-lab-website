@@ -36,6 +36,7 @@ const ASSETS = {
 
 const CHAR_SIZE = 32;
 const PLAYER_FRAME_SIZE = 48;
+const PLAYER_RENDER_SIZE = 48; // Render player larger to match NPC visual size
 const NPC_IDLE_SPEED = 0.03;
 const PLAYER_SPEED = 2.5;
 const MAP_URL = "/assets/tiles/sprout-lands/village.tmx";
@@ -171,10 +172,14 @@ const TMXMapRenderer = memo(
 			const scaledTileW = tmxMap.tileWidth * TILE_SCALE;
 			const scaledTileH = tmxMap.tileHeight * TILE_SCALE;
 
-			const startX = Math.floor(camera.x / scaledTileW);
-			const startY = Math.floor(camera.y / scaledTileH);
-			const endX = startX + Math.ceil(GAME_CONFIG.canvasWidth / scaledTileW) + 1;
-			const endY = startY + Math.ceil(GAME_CONFIG.canvasHeight / scaledTileH) + 1;
+			// Round camera to integers to prevent sub-pixel gaps between tiles
+			const camX = Math.round(camera.x);
+			const camY = Math.round(camera.y);
+
+			const startX = Math.floor(camX / scaledTileW);
+			const startY = Math.floor(camY / scaledTileH);
+			const endX = startX + Math.ceil(GAME_CONFIG.canvasWidth / scaledTileW) + 2;
+			const endY = startY + Math.ceil(GAME_CONFIG.canvasHeight / scaledTileH) + 2;
 
 			const clampStartX = Math.max(0, startX);
 			const clampStartY = Math.max(0, startY);
@@ -212,13 +217,14 @@ const TMXMapRenderer = memo(
 							tileset.tileHeight,
 						);
 
+						// Round tile positions to prevent sub-pixel rendering gaps
 						tiles.push(
 							<TMXTile
 								key={`${layer.name}-${x}-${y}`}
 								texture={texture}
 								frame={frame}
-								x={x * scaledTileW - camera.x}
-								y={y * scaledTileH - camera.y}
+								x={Math.round(x * scaledTileW - camX)}
+								y={Math.round(y * scaledTileH - camY)}
 								width={scaledTileW}
 								height={scaledTileH}
 							/>,
@@ -440,7 +446,7 @@ const GameScene = ({
 		camX = Math.max(0, Math.min(camX, mapWidth - GAME_CONFIG.canvasWidth));
 		camY = Math.max(0, Math.min(camY, mapHeight - GAME_CONFIG.canvasHeight));
 
-		setCamera({ x: camX, y: camY });
+		setCamera({ x: Math.round(camX), y: Math.round(camY) });
 	}, [playerState.x, playerState.y, tmxMap]);
 
 	useEffect(() => {
@@ -538,10 +544,10 @@ const GameScene = ({
 					textures={playerTextures}
 					isMoving={playerState.isMoving}
 					animTimer={playerState.animTimer}
-					x={playerState.x - camera.x}
-					y={playerState.y - camera.y}
-					width={CHAR_SIZE}
-					height={CHAR_SIZE}
+					x={playerState.x - camera.x - (PLAYER_RENDER_SIZE - CHAR_SIZE) / 2}
+					y={playerState.y - camera.y - (PLAYER_RENDER_SIZE - CHAR_SIZE) / 2}
+					width={PLAYER_RENDER_SIZE}
+					height={PLAYER_RENDER_SIZE}
 				/>
 			),
 		},

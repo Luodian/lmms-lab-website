@@ -52,6 +52,54 @@ export const TILESETS: TilesetConfig[] = [
 		tileHeight: 16,
 		imageWidth: 176,
 	},
+	{
+		firstgid: 197,
+		name: "decorations",
+		image: "/assets/tiles/sprout-lands/decorations.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 192,
+	},
+	{
+		firstgid: 257,
+		name: "trees",
+		image: "/assets/tiles/sprout-lands/trees.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 192,
+	},
+	{
+		firstgid: 341,
+		name: "Fences",
+		image: "/assets/tiles/sprout-lands/Fences.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 64,
+	},
+	{
+		firstgid: 357,
+		name: "Wooden_House_Roof",
+		image: "/assets/tiles/sprout-lands/Wooden_House_Roof_Tilset.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 96,
+	},
+	{
+		firstgid: 387,
+		name: "Wooden_House_Walls",
+		image: "/assets/tiles/sprout-lands/Wooden_House_Walls_Tilset.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 80,
+	},
+	{
+		firstgid: 402,
+		name: "well",
+		image: "/assets/tiles/sprout-lands/well.png",
+		tileWidth: 16,
+		tileHeight: 16,
+		imageWidth: 64,
+	},
 ];
 
 const TILESETS_SORTED = [...TILESETS].sort((a, b) => b.firstgid - a.firstgid);
@@ -66,7 +114,9 @@ export function getTilesetForGid(gid: number): { tileset: TilesetConfig; localId
 	return null;
 }
 
-export const COLLISION_LAYERS = ["water"];
+export const COLLISION_LAYERS = ["water", "trees_bottom", "fences", "buildings"];
+
+export const OBSTACLES: any[] = [];
 
 // Stardew Valley inspired color palette
 export const COLORS = {
@@ -145,14 +195,6 @@ export const NPCS: NPC[] = [
 
 // Buildings for each NPC - Arranged around a town square on 960x640 map
 export const BUILDINGS: Building[] = [
-	{
-		id: "building-models",
-		name: "Model Lab",
-		position: { x: 456, y: 80 },
-		size: { width: 48, height: 80 },
-		color: COLORS.buildingWood,
-		roofColor: COLORS.roofRed,
-	},
 	{
 		id: "building-tools",
 		name: "Tools Workshop",
