@@ -1,0 +1,29 @@
+---
+import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import PixelWorldPixi from "./PixelWorldPixi";
+
+interface BlogPost {
+  slug: string;
+  title: string;
+  description: string;
+  publishDate: Date;
+  thumbnail?: string;
+  tags: string[];
+  mainTags: string[];
+}
+
+const allPosts = await getCollection("post", (entry) => !entry.data.draft);
+
+const posts: BlogPost[] = allPosts.map((post: CollectionEntry<"post">) => ({
+  slug: post.id,
+  title: post.data.title,
+  description: post.data.description,
+  publishDate: post.data.publishDate,
+  thumbnail: post.data.thumbnail,
+  tags: post.data.tags || [],
+  mainTags: post.data.mainTags || [],
+})).sort((a: BlogPost, b: BlogPost) => b.publishDate.getTime() - a.publishDate.getTime());
+---
+
+<PixelWorldPixi client:only="react" posts={posts} />
