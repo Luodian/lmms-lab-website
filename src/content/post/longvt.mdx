@@ -43,6 +43,37 @@ import { ResponsiveImage, ResourceCard } from "@/components/mdx/components";
 
 </div>
 
+## TL;DR
+
+We teach vision-language models to **think like humans** when watching long videos: instead of trying to memorize everything at once, the model learns to *skim first, then zoom in* on relevant moments. This is achieved through a native tool-calling mechanism where the model can invoke `crop_video(start, end)` to inspect specific clips on demand. The result? A 7B model that outperforms much larger models on long-video understanding tasks.
+
+---
+
+## The Problem: Why Long Videos Are Hard
+
+Imagine watching a 2-hour movie and being asked: *"What was the character wearing when they first entered the coffee shop?"* Even for humans, this requires a specific strategy: you don't re-watch the entire movie—you mentally locate the relevant scene, then focus on those few seconds.
+
+Current vision-language models don't work this way. They typically:
+1. **Sample frames uniformly** across the video (missing critical moments)
+2. **Process everything at once** (overwhelming the context window)
+3. **Hallucinate** when the answer isn't in the sampled frames
+
+The core issue is that **evidence in long videos is sparse and temporally localized**. A 2-hour video at 1 FPS gives you 7,200 frames, but the answer to your question might depend on just 3-5 frames buried somewhere in the middle.
+
+## Our Insight: Let Models "Think with Tools"
+
+The key insight behind LongVT is simple: **instead of forcing models to process everything, let them actively seek evidence**.
+
+We introduce a native tool-calling paradigm where the model can:
+1. **Preview** the video globally (sparse sampling)
+2. **Hypothesize** which time window might contain the answer
+3. **Zoom in** by calling `crop_video(start_time, end_time)`
+4. **Verify or refine** based on what it actually sees
+
+This mimics the human cognitive process of *global-to-local reasoning*. The model isn't just passively processing frames—it's actively investigating.
+
+---
+
 ## Overview
 
 Our contributions are threefold:
@@ -64,13 +95,38 @@ Through extensive quantitative comparisons, systematic ablations on data recipes
 
 **Interleaved Multimodal Chain-of-Tool-Thought (iMCoTT).** Compared to prior text-based CoT reasoning, iMCoTT in our proposed **LongVT** can **natively** perform self-reflection via **calling** `crop_video(start_time, end_time)` **tool**. It proposes a time window after a global preview, proactively fetches the corresponding short clip, rethinks based on the new evidence, and determines whether to refine or answer directly. Such tool-augmented reasoning behaviors ground each step in what is actually seen rather than blindly rephrasing in text-only CoT, which mitigates hallucination and leads to enhanced temporal localization and answer correctness.
 
+### Why "Native" Tool Calling Matters
+
+You might ask: why not just use an external retrieval system? The key difference is **agency**. In LongVT:
+
+- The model *decides* when to call the tool (not every query needs it)
+- The model *chooses* the time window based on its reasoning
+- The model *integrates* the retrieved evidence into its thought process
+
+This is fundamentally different from retrieval-augmented generation (RAG), where retrieval happens before reasoning. In LongVT, **retrieval is part of reasoning**.
+
 ---
 
 ## Motivation of VideoSIAH
 
-Long-video reasoning presents a fundamentally different challenge from previous video QA settings: LMMs must locate *sparse*, *fine-grained*, and *causally decisive* moments embedded within hours-long content. However, existing LMMs are mostly trained with *coarse-grained* and *clip-level* data. This mismatch leaves modern LMMs lacking the supervision needed to learn how temporal hypotheses are formed, verified, or revised—a critical yet underexplored capability for agentic long-video reasoning.
+### The Data Gap
 
-Moreover, most existing video understanding benchmarks only offer *multiple-choice QAs*, which can be solved without genuine temporal grounding and are vulnerable to *dataset leakage* or shortcut exploitation. To fill this gap, we introduce **VideoSIAH**, a large-scale, diverse, and high-quality data suite that serves collectively as a training dataset capturing the reasoning dynamics required for video segment-in-a-haystack QA, and a fine-grained evaluation benchmark, **VideoSIAH-Eval**, with human-in-the-loop validation for long-video open-ended question-answering.
+Having a good method is only half the battle—you need the right data to train it. We found that existing long-video datasets have two major problems:
+
+1. **Coarse-grained annotations**: Most datasets have clip-level QAs that don't require precise temporal reasoning. A model can often guess the answer without knowing *when* something happened.
+
+2. **Benchmark contamination**: Many multiple-choice benchmarks can be "solved" without even watching the video! Our contamination study (see table below) shows that some models perform well above chance in the "No Visual" setting.
+
+### VideoSIAH: Segment-in-a-Haystack
+
+To address this, we created **VideoSIAH**—a dataset specifically designed for the "needle in a haystack" scenario where the answer depends on a small segment within a long video.
+
+The name captures the challenge: finding the right video **S**egment **I**n **A** **H**aystack of hours-long content.
+
+Key design principles:
+- **Open-ended questions**: No multiple choice to game
+- **Human validation**: Annotators verify that questions truly require temporal localization
+- **Tool-integrated traces**: Training data includes the reasoning process, not just answers
 
 We conduct a rigorous contamination study on the Qwen-VL series across two probing settings: **(1)** *No Visual*, where we feed the text prompt without video frames to test for direct memorization; **(2)** *Rearranged Choices*, where we randomize the mapping between option labels and their textual content for multiple-choice questions to detect label memorization. Our experimental results reveal significant vulnerabilities in existing benchmarks and highlight the necessity of our proposed VideoSIAH-Eval.
 
@@ -199,6 +255,40 @@ We conduct comprehensive ablation studies to examine the impact of data recipes,
 **Recall encourages coverage; IoU demands precision.** Using Recall as the reward function during RL presents a drawback: the policy can enlarge the predicted span to envelop the ground-truth interval, which monotonically raises the Recall-based score while ignoring boundary quality. This plateau in the curve of Recall Accuracy Score validates our hypothesized reward hacking. In contrast, IoU explicitly penalizes span inflation via the union term, yielding better-aligned boundaries and more disciplined tool use.
 
 **Is tool reward really necessary?** The Qwen2.5-VL-7B baseline collapses to near-zero tool calls after training in both configurations (w/ and w/o tool reward), indicating that the model does not internalize the tool's function. After performing cold-start SFT to obtain LongVT-7B-SFT, tool-call frequency rises during training under both configurations and accuracy improves in tandem. Hence, the tool reward is not required for basic competence: once SFT grounds the tool's semantics, the model learns when and how to invoke the tool.
+
+---
+
+## Key Takeaways & Lessons Learned
+
+Through this project, we gained several insights that might be valuable for future work:
+
+### 1. Cold-Start SFT is Crucial for Tool Learning
+
+One surprising finding was that **you can't just RL your way to tool use**. Without the cold-start SFT phase that demonstrates tool semantics, the model never learns to call tools—even with explicit tool rewards. This suggests that tool-using behaviors need to be *shown* before they can be *optimized*.
+
+### 2. The Model Learns *When* to Use Tools
+
+After SFT, we observed that the model doesn't blindly call tools for every query. It develops an intuition for which questions require zooming in (fine-grained visual details) versus which can be answered from the global preview (general scene understanding). This emergent selectivity wasn't explicitly trained—it arose naturally from the data.
+
+### 3. IoU > Recall for Temporal Grounding Rewards
+
+When we first tried Recall-based rewards, we saw the model "gaming" the metric by predicting increasingly wide time windows. Switching to IoU forced the model to be precise about boundaries. This is a concrete example of how reward design shapes agent behavior.
+
+### 4. Existing Benchmarks Have Contamination Issues
+
+Our contamination study revealed that some models perform surprisingly well on long-video benchmarks even *without seeing the video*. This motivated us to create VideoSIAH-Eval with open-ended questions that can't be gamed through memorization.
+
+---
+
+## What's Next?
+
+LongVT opens up several exciting directions:
+
+- **Multi-round tool calling**: Currently, the model typically calls the tool once. Enabling iterative refinement could help with even more complex queries.
+- **Tool diversity**: Beyond `crop_video`, we could add tools for object tracking, scene search, or even external knowledge retrieval.
+- **Longer videos**: While we tested on hour-long videos, the paradigm should scale to even longer content like full TV series or lecture archives.
+
+We're excited to see how the community builds on this work!
 
 ---
 
