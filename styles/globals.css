@@ -2286,6 +2286,14 @@ tbody tr:hover {
 	pointer-events: none;
 }
 
+/* Accent line - adds visual weight to left side */
+.hero-accent-line {
+	width: 80px;
+	height: 3px;
+	background: var(--foreground);
+	opacity: 0.6;
+}
+
 .brutalist-hero-subtitle {
 	font-size: var(--text-body);  /* Level 4: 18px */
 	font-weight: 400;

@@ -49,13 +49,19 @@ export function HeroSection() {
 		<div className="relative w-full overflow-hidden bg-[var(--background)]">
 			<section className="brutalist-hero dashboard-hero">
 			<div className="dashboard-panel hero-panel">
-				
+
 					<div className="brutalist-hero-content">
+						{/* Label */}
+						<div className="brutalist-hero-label fade-in-up animate-fill-both">
+							<div className="brutalist-label-line" />
+							<span>LMMs-Lab Research</span>
+						</div>
+
 						<h1 className="brutalist-hero-title fade-in-up animate-fill-both">
 							<div className="min-h-[1.2em] overflow-hidden" style={{ whiteSpace: "nowrap" }}>
-							<DiffusionText 
+							<DiffusionText
 								text={displayText}
-								revealSpeed={4000} 
+								revealSpeed={4000}
 								variant="morph"
 								paused={transitioning}
 							/>
@@ -68,7 +74,10 @@ export function HeroSection() {
 								the way to intelligence.
 							</span>
 						</h1>
-						
+
+						{/* Accent line for visual weight */}
+						<div className="hero-accent-line fade-in animate-fill-both stagger-1" />
+
 						<p className="brutalist-hero-subtitle fade-in-up animate-fill-both stagger-1">
 							Advancing multimodal intelligence through open research. Models, data, and insights - shared as we discover.
 						</p>
@@ -85,7 +94,7 @@ export function HeroSection() {
 				</div>
 
 			<div className="dashboard-panel hero-panel hero-panel-visual">
-				
+
 				<div className="brutalist-hero-visual fade-in animate-fill-both stagger-2">
 					<div className="hero-terminal-shell">
 						<HackerTerminal />
