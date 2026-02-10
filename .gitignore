@@ -37,3 +37,5 @@ README_AUDIT.md
 UI_AUDIT_*.md
 UI_AUDIT_SUMMARY.txt
 screenshots/
+.opencode/*
+.opencode/
