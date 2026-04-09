@@ -3,6 +3,7 @@ import { ResponsiveImage } from "./ResponsiveImage";
 import { ResourceCard } from "./ResourceCard";
 import { QuickLinks } from "./QuickLinks";
 import { CodeDemo } from "./CodeDemo";
+import { RLDonutCharts } from "./RLDonutCharts";
 import { Collapsible } from "./Collapsible";
 import {
   DitherPattern,
@@ -21,6 +22,7 @@ const components = {
   ResourceCard,
   QuickLinks,
   CodeDemo,
+  RLDonutCharts,
   Collapsible,
   DitherPattern,
   PixelShape,

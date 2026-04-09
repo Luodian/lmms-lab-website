@@ -38,13 +38,18 @@ bibtex: "@inproceedings{LLaVA-OneVision-1.5,
   year={2024}
 }"
 ---
-<QuickLinks links={[
-  { type: "paper", url: "https://arxiv.org/abs/2509.23661" },
-  { type: "code", url: "https://github.com/EvolvingLMMs-Lab/-LLaVA-OneVision-1.5-RL" },
-  { type: "model", url: "https://huggingface.co/mvp-lab/LLAVA-OV-1.5-8B-RL" },
-  { type: "data", url: "https://huggingface.co/datasets/mvp-lab/LLaVA-OneVision-1.5-RL-Data" },
-  { type: "link", url: "https://github.com/EvolvingLMMs-Lab/LLaVA-OneVision-1.5", label: "Base Model" },
-]} />
+
+import { ResponsiveImage, ResourceCard } from "@/components/mdx/components";
+
+<ResponsiveImage
+  src="/images/blog_thumbnails/llava_onevision_1.5_rl.gif"
+  alt="LLaVA-OneVision-1.5-RL"
+  maxWidth="100%"
+/>
+
+[Technical Report](https://arxiv.org/abs/2509.23661) | [Code](https://github.com/EvolvingLMMs-Lab/-LLaVA-OneVision-1.5-RL) | [Models](https://huggingface.co/mvp-lab/LLAVA-OV-1.5-8B-RL) | [Datasets](https://huggingface.co/datasets/mvp-lab/LLaVA-OneVision-1.5-RL-Data) | [Base Model](https://github.com/EvolvingLMMs-Lab/LLaVA-OneVision-1.5)
+
+Unlocking multimodal reasoning via lightweight reinforcement learning!
 
 ## Overview
 
@@ -61,12 +66,7 @@ We employ domain-specific verification rules rather than learned preference mode
 **(3) Two-Stage Curriculum Training.**
 We design a training curriculum that first stabilizes concise task performance with answer-only RL, then unlocks deeper reasoning through chain-of-thought RL.
 
-<ResponsiveImage
-  src="/images/llava_onevision_1.5_rl_images/rl_2stage_data.png"
-  alt="RL Training Data Distribution"
-  maxWidth="100%"
-  caption="Distribution of task categories in the RL training data (67K total instances)"
-/>
+<RLDonutCharts caption="Distribution of task categories in the RL training data. (a) Total RL corpus (67K instances). (b) Stage 1: Answer-only training. (c) Stage 2: Chain-of-thought training." />
 
 ---
 
