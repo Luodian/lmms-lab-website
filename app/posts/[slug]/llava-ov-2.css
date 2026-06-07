@@ -702,9 +702,9 @@
 @media (min-width: 1024px) {
   #lov2-page .page-layout {
     display: grid;
-    grid-template-columns: 220px minmax(0, 1280px);
+    grid-template-columns: 200px minmax(0, 1280px);
     justify-content: center;
-    gap: 2rem;
+    gap: 1.25rem;
     max-width: 100%;
   }
   #lov2-page .page {
@@ -721,7 +721,7 @@
     position: sticky;
     top: 72px;
     align-self: start;
-    padding: 24px 0 28px 0;
+    padding: 24px 0 28px 12px;
     max-height: calc(100vh - 88px);
     overflow-y: auto;
   }
