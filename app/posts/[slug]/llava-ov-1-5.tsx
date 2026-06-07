@@ -3,7 +3,14 @@
 import { useState } from "react";
 import "./llava-ov-1-5.css";
 
-export default function LlavaOV15Page({ post }: { post: any }) {
+interface PostMeta {
+  title?: string;
+  date?: string;
+  mainTags?: string[];
+  bibtex?: string;
+}
+
+export default function LlavaOV15Page({ post }: { post: PostMeta }) {
   const { title, date, mainTags } = post;
   const datasetDownloads = {
     midTraining: "290,624",
@@ -429,11 +436,13 @@ accelerate launch --num_processes=8 --main_process_port 12399 -m lmms_eval \\
           
           <div className="lov15-meta">
             <span>
-              {new Date(date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
+              {date
+                ? new Date(date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })
+                : ""}
             </span>
             {mainTags && mainTags.length > 0 && (
               <>

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import LlavaOV15Page from "./llava-ov-1-5";
 import LlavaOV15RLPage from "./llava-ov-1-5-rl";
+import LlavaOV2Page from "./llava-ov-2";
 import LongVTPage from "./longvt";
 
 export async function generateStaticParams() {
@@ -54,6 +55,12 @@ export default async function PostPage({
 
 	if (slug === "llava_onevision_1.5_rl") {
 		return <LlavaOV15RLPage post={post} />;
+	}
+	if (slug === "llava_onevision_1_5") {
+		return <LlavaOV15Page post={post} />;
+	}
+	if (slug === "llava_onevision_2") {
+		return <LlavaOV2Page post={post} />;
 	}
 	if (slug === "longvt") {
 		return <LongVTPage post={post} />;
