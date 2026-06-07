@@ -24,6 +24,7 @@ const ORIGIN_TEXT = (
 const projects: Project[] = [
 	{ name: "OneVision Encoder", href: "https://github.com/search?q=OneVision+Encoder+EvolvingLMMs-Lab&type=repositories" },
 	{ name: "LMMs-Engine", href: "https://github.com/EvolvingLMMs-Lab/lmms-engine" },
+	{ name: "LLaVA-OneVision-2", href: "https://github.com/EvolvingLMMs-Lab/LLaVA-OneVision-2" },
 	{ name: "LLaVA-OneVision-1.5", href: "https://github.com/EvolvingLMMs-Lab/LLaVA-OneVision-1.5" },
 	{ name: "Multimodal-SAE", href: "https://github.com/EvolvingLMMs-Lab/multimodal-sae" },
 	{ name: "LLaVA-OneVision", href: "https://github.com/LLaVA-VL/LLaVA-NeXT" },

@@ -1464,13 +1464,6 @@ export default function LlavaOV2Page({ post }: { post: PostMeta }) {
               )}
             </div>
 
-            <div className="affiliations">
-              <span>Lmms-Lab</span>
-              <span>Glint-Lab</span>
-              <span>AIM for Health Lab</span>
-              <span>MVP-Lab</span>
-            </div>
-
             <div className="authors">LLaVA-OneVision Contributors</div>
 
             <p className="lede">
