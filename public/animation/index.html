@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>LMMs-Lab → Large World Model</title>
+
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #0c0b0a;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    transition: background .5s ease;
+    font-family: ui-monospace, "Geist Mono", "SF Mono", Menlo, monospace;
+  }
+  #stage {
+    width: min(100vw, 177.78vh);
+    aspect-ratio: 16 / 9;
+    height: auto;
+    display: block;
+  }
+  /* unobtrusive controls, revealed on hover / touch */
+  #ui {
+    position: fixed; left: 16px; top: 16px; z-index: 10;
+    display: flex; gap: 8px; align-items: center;
+    opacity: .28; transition: opacity .25s ease;
+  }
+  #ui:hover { opacity: 1; }
+  .grp { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid rgba(128,128,128,.35); }
+  .grp button {
+    appearance: none; border: 0; margin: 0;
+    padding: 7px 12px; font: inherit; font-size: 12px; letter-spacing: .04em;
+    background: rgba(128,128,128,.10); color: currentColor; cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+  .grp button + button { border-left: 1px solid rgba(128,128,128,.28); }
+  .grp button[aria-pressed="true"] { background: #FB315E; color: #fff; }
+  body { color: #6b665d; }
+  body[data-theme="dark"] { color: #8f897e; }
+</style>
+</head>
+<body>
+  <div id="ui">
+    <div class="grp" id="variant">
+      <button data-v="b" aria-pressed="true">1B</button>
+      <button data-v="c" aria-pressed="false">1C</button>
+    </div>
+    <div class="grp" id="theme">
+      <button data-t="light" aria-pressed="true">LIGHT</button>
+      <button data-t="dark" aria-pressed="false">DARK</button>
+    </div>
+  </div>
+  <canvas id="stage" width="1600" height="900"></canvas>
+
+  <script src="./lmms-pixelfont.js"></script>
+  <script src="./lmms-render.js"></script>
+  <script>
+  (function () {
+    var cv = document.getElementById('stage');
+    // opaque context: the renderer repaints the full frame, so skipping the
+    // alpha channel keeps compositing cheap and the rAF loop at display rate
+    var ctx = cv.getContext('2d', { alpha: false });
+    var R = window.LMMSRender.make();
+    var DUR = 8000;
+
+    var variant = localStorage.getItem('lmms_variant') || 'b';
+    var theme = localStorage.getItem('lmms_theme') || 'light';
+    var t0 = performance.now();
+    var paused = false, seekT = 0;
+
+    function applyChrome() {
+      document.body.setAttribute('data-theme', theme);
+      document.body.style.background = R.pal(theme).ground;
+      document.querySelectorAll('#variant button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.v === variant));
+      });
+      document.querySelectorAll('#theme button').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.t === theme));
+      });
+    }
+
+    function frame(now) {
+      if (window.LMMSFont) {
+        var t = paused ? seekT : (((now - t0) % DUR) / DUR);
+        R.scene(variant, ctx, 1600, 900, t, R.pal(theme), paused ? 0 : now);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    document.getElementById('variant').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      variant = b.dataset.v; localStorage.setItem('lmms_variant', variant); applyChrome();
+    });
+    document.getElementById('theme').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      theme = b.dataset.t; localStorage.setItem('lmms_theme', theme); applyChrome();
+    });
+
+    // hooks (used by tooling to grab deterministic frames)
+    window.__player = {
+      set variant(v) { variant = v; applyChrome(); },
+      set theme(v) { theme = v; applyChrome(); },
+      pause: function () { paused = true; },
+      play: function () { paused = false; t0 = performance.now(); },
+      seek: function (t) { paused = true; seekT = t; R.scene(variant, ctx, 1600, 900, t, R.pal(theme), 0); }
+    };
+
+    applyChrome();
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body></html>
