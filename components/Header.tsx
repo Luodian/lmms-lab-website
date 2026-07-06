@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
+import AnimatedLogo from "@/components/AnimatedLogo";
 import TransitionLink from "@/components/motion/TransitionLink";
 import { AnimatePresence, motion } from "framer-motion";
 import styles from "./Header.module.css";
@@ -182,14 +182,7 @@ export default function Header() {
       <div className={styles.mastheadInner}>
         <div className={styles.mastheadBrand}>
           <TransitionLink href="/" className={styles.brandLink}>
-            <Image
-              src="/assets/logo.png"
-              alt="LMMS Lab Logo"
-              width={144}
-              height={144}
-              className={styles.brandLogo}
-              priority
-            />
+            <AnimatedLogo />
           </TransitionLink>
         </div>
 

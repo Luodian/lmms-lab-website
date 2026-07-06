@@ -34,12 +34,6 @@
 	line-height: 0;
 }
 
-.brandLogo {
-	width: auto;
-	height: 44px;
-	object-fit: contain;
-}
-
 .navMenu {
 	display: flex;
 	gap: 2rem;

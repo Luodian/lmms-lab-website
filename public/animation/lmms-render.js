@@ -1,16 +1,22 @@
 /* LMMs-Lab morph renderer — shared by the HTML player and the GIF encoder.
    Depends on window.LMMSFont (pixelfont.js). Call LMMSRender.make() to get a
-   renderer R, then R.scene(mode, ctx, W, H, t, pal, now):
+   renderer R, then R.scene(mode, ctx, W, H, t, pal, now, opts):
      mode : 'b' (single-line lockup morph) | 'c' (hero pivot)
      t    : loop phase 0..1
      pal  : R.pal('light'|'dark')
-     now  : ms for idle float; pass 0 for a perfectly seamless loop (GIF). */
+     now  : ms for idle float; pass 0 for a perfectly seamless loop (GIF)
+     opts : optional, mode 'b' only —
+       bare   : transparent canvas (no ground fill / grid), for the site header
+       alignX : 'left' anchors the lockup at padX instead of centering
+       padX   : left padding in stage px when alignX === 'left'
+       eCell  : cell size of the expanded LARGE * MODEL line (default 15) */
 (function (global) {
   function make() {
     const R = {
       CY: [56, 240, 231],   // #38F0E7
       MG: [251, 49, 94],    // #FB315E
       _ol: false,
+      _opts: {},
 
       pal(theme) {
         return theme === 'dark'
@@ -22,6 +28,8 @@
       mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; },
 
       ground(ctx, W, H, pal) {
+        // bare mode (header logo): transparent canvas, no ground fill or grid
+        if (this._opts.bare) { ctx.clearRect(0, 0, W, H); return; }
         // The dotted ground is static per theme/size — pre-render it once and
         // blit each frame so the loop stays well inside a 60/120 Hz budget.
         const key = W + 'x' + H + ':' + pal.ground;
@@ -150,8 +158,9 @@
         };
       },
 
-      scene(mode, ctx, W, H, t, pal, now) {
+      scene(mode, ctx, W, H, t, pal, now, opts) {
         now = now || 0;
+        this._opts = opts || {};
         this._ol = (mode === 'b' || mode === 'c');
         this.ground(ctx, W, H, pal);
         const bob = Math.sin(now / 1000 * 1.1) * 2.2;
@@ -170,25 +179,29 @@
           { ch: 'M', w: 5, rem: 'ODEL' },
         ];
         const lockGx = [0, 4, 10];
-        const eCell = 15, lockCell = 30;
-        const lockW = 35, lockOX = (W - lockW * lockCell) / 2, lockOY = (H - 5 * lockCell) / 2;
+        const o = this._opts;
+        const eCell = o.eCell || 15, lockCell = 30;
+        const lockW = 35, lockOY = (H - 5 * lockCell) / 2;
+        const lockOX = o.alignX === 'left' ? (o.padX || 0) : (W - lockW * lockCell) / 2;
 
         let eX = [], eY = [], remX = [];
         const slideP = e(F.clamp01((ph.tail - 0.3) / 0.65));
         const midW = L(F.measure('ULTIMODAL'), F.measure('ORLD'), slideP);
         const x0 = 0, x1 = F.measure('LARGE') + 4, x2 = x1 + 5 + 1 + midW + 4;
-        const blockW = x2 + F.measure('MODEL'), blockX = (W - blockW * eCell) / 2, y = (H - 5 * eCell) / 2;
+        const blockW = x2 + F.measure('MODEL'), y = (H - 5 * eCell) / 2;
+        const blockX = o.alignX === 'left' ? (o.padX || 0) : (W - blockW * eCell) / 2;
         const xs = [x0, x1, x2];
         for (let i = 0; i < 3; i++) { eX[i] = blockX + xs[i] * eCell; eY[i] = y; remX[i] = eX[i] + (inits[i].w + 1) * eCell; }
 
         const flipAmt = t < 0.40 ? 0 : t <= 0.74 ? e(s(t, 0.40, 0.60)) : 1 - e(s(t, 0.74, 0.86));
-        // At rest the mark sits on 'Lab' exactly as in the logo lockup, then
-        // flies to the middle M to serve as the flip pivot while expanded.
-        const lcxLab = lockOX + 30.5 * lockCell, lcyLab = lockOY + 2.5 * lockCell;
+        // At rest the mark sits on 'Lab' exactly as in the logo lockup
+        // (position/size calibrated against assets/logo.png), then flies to
+        // the middle M to serve as the flip pivot while expanded.
+        const lcxLab = lockOX + 28.6 * lockCell, lcyLab = lockOY + 2.96 * lockCell;
         const ecx1 = eX[1] + 2.5 * eCell, ecy1 = eY[1] + 2.5 * eCell;
         const pivCx = L(lcxLab, ecx1, ph.expand), pivCy = L(lcyLab, ecy1, ph.expand);
-        const markW = L(10.5 * lockCell, 10 * eCell, ph.expand);
-        const bgRot = L(-0.12, -0.14 + Math.sin(now / 1000 * 0.5) * 0.035, ph.expand) + flipAmt * 0.42;
+        const markW = L(17.35 * lockCell, 10 * eCell, ph.expand);
+        const bgRot = L(0, -0.14 + Math.sin(now / 1000 * 0.5) * 0.035, ph.expand) + flipAmt * 0.42;
         this.drawMark(ctx, pivCx, pivCy, markW, 1, bgRot, pal);
 
         this.drawStr(ctx, 's-Lab', lockOX + 16 * lockCell, lockOY, lockCell, this.CY, ph.suffix, pal, true);

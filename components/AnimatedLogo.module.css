@@ -1,0 +1,49 @@
+/* The wrapper keeps the exact 44px box the static logo occupied, so the
+   header bar height never changes. The canvas is slightly taller (its stage
+   carries the mark overhang) and is nudged so its glyph baseline lands where
+   the PNG's does — the PNG-to-canvas swap must not visibly shift the logo. */
+
+.wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 44px;
+}
+
+.fallback {
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	height: 44px;
+	width: auto;
+	object-fit: contain;
+	transition: opacity 0.15s ease;
+}
+
+.canvas {
+	display: block;
+	height: 46px;
+	aspect-ratio: 2400 / 390;
+	width: auto;
+	align-self: flex-start;
+	margin-top: -3.4px;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.wrap[data-ready="true"] .canvas {
+	opacity: 1;
+}
+
+.wrap[data-ready="true"] .fallback {
+	opacity: 0;
+}
+
+/* very narrow screens: shrink so the in-flow canvas can't crowd the menu button */
+@media (max-width: 380px) {
+	.canvas {
+		height: 38px;
+		margin-top: 0.7px;
+	}
+}
