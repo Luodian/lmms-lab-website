@@ -231,11 +231,6 @@
             this.drawStr(ctx, it.ch, ox, oy, cell, this.CY, 1, pal, true);
           }
         }
-
-        // Near rest the logo paints the mark over the glyphs; fading a second
-        // copy on top (same geometry) crossfades the paint order without a pop.
-        const overlay = 1 - F.clamp01(ph.expand * 3);
-        if (overlay > 0.001) this.drawMark(ctx, pivCx, pivCy, markW, overlay, bgRot, pal);
       },
 
       sceneC(ctx, W, H, t, pal, now) {
@@ -245,9 +240,10 @@
         const lockOX = (W - lockW * lockCell) / 2, lockOY = (H - 5 * lockCell) / 2;
         const lockA = Math.max(1 - e(s(t, 0.09, 0.24)), e(s(t, 0.90, 1.0)));
         if (lockA > 0.01) {
+          // Mark first so the glyphs paint over it, as in the logo PNG.
+          this.drawMark(ctx, lockOX + 30.5 * lockCell, lockOY + 2.5 * lockCell, 10.5 * lockCell, lockA * 0.96, -0.12, pal);
           this.drawStr(ctx, 'LMMs', lockOX, lockOY, lockCell, this.CY, lockA, pal, true);
           this.drawStr(ctx, 's-Lab', lockOX + 16 * lockCell, lockOY, lockCell, this.CY, lockA, pal, true);
-          this.drawMark(ctx, lockOX + 30.5 * lockCell, lockOY + 2.5 * lockCell, 10.5 * lockCell, lockA * 0.96, -0.12, pal);
         }
 
         const heroA = e(s(t, 0.12, 0.30)) * (1 - e(s(t, 0.86, 0.99)));
