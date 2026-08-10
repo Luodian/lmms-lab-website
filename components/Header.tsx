@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import AnimatedLogo from "@/components/AnimatedLogo";
+import UserMenu from "@/components/auth/UserMenu";
 import TransitionLink from "@/components/motion/TransitionLink";
 import { AnimatePresence, motion } from "framer-motion";
 import styles from "./Header.module.css";
@@ -287,6 +288,7 @@ export default function Header() {
           >
             About
           </TransitionLink>
+          <UserMenu />
         </nav>
       </div>
 
@@ -346,6 +348,7 @@ export default function Header() {
               >
                 About
               </TransitionLink>
+              <UserMenu />
             </nav>
           </motion.div>
         )}
