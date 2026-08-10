@@ -66,7 +66,7 @@ In practice, one typically samples $t\sim\text{Unif}[0,1]$and, for that fixed $t
 
 Figure below (not shown here) illustrates the three stages of an MDLLM pipeline using **LLaDA** [1] as an example: **(a) pretraining, (b) SFT** and **(c) Sampling.**
 
-![image.png](DLM_images/image.png)
+![image.png](/images/dllm_images/image.png)
 
 |                                      | Process                                                                                                                                                                                                                                                                                  |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,7 +94,7 @@ This design yields a trade-off between pure AR and full MDLLM decoding:
 
 The figure blow schematically illustrates the semi-autoregressive sampling schedule. At the initial step ($t=1$) all tokens except the prompt are masked. The model then successively reconstructs _Block 0 -> Block 1 -> Block 2 -> ⋯_, reaching a fully realized sequence at $t=0$.
 
-![image.png](DLM_images/image1.png)
+![image.png](/images/dllm_images/image1.png)
 
 - It’s worth noting that In LLada’s implementation, even under semi-AR generation the entire sequence is fed to the model at **every** forward pass. When generating _Block 0_, for example, the input is _Prompt + Block 0 + Block 1 + Block 2 + ⋯_, rather than _Prompt + Block 0_ alone. We conjecture that this choice ensures consistency with the supervised fine-tuning (SFT) regime, which conditions on the full sequence.
 
@@ -124,7 +124,7 @@ $$
 
      In contrast, MDLLM adopts a full attention mask, meaning that whenever a [MASK] token in the input sequence is unmasked, all K and V representations throughout the network must be recomputed. As a result, the architecture is inherently incompatible with KV-caching. This presents a key limitation: although MDLLM is capable of generating multiple tokens in a single forward pass during inference, the lack of KV-caching prevents it from achieving high generation efficiency. Each diffusion step still requires a full forward pass over all tokens in the sequence. In comparison, an AR model equipped with KV-caching only needs to process the current token at each generation step, resulting in significantly faster inference.
 
-     ![image.png](DLM_images/image2.png)
+     ![image.png](/images/dllm_images/image2.png)
 
   2. **Parallel Decoding**
 
@@ -132,7 +132,7 @@ $$
 
      The figure below reports our results for LLaDA-Instruct [1] on GSM8K with 5-shot prompting. The number of tokens unmasked at each step is given by $\text{gen\_length} / \text{diff\_steps}$, where “**gen_length”** is the maximum generation length and “**diff_steps”** is the total number of denoising steps. It is evident that accuracy drops substantially as the number of tokens unmasked at each step increases.
 
-     ![image.png](DLM_images/image3.png)
+     ![image.png](/images/dllm_images/image3.png)
 
 - **_Relative to a standard autoregressive (AR) model, training an MDLLM model appears to be appreciably more complex_**
   Because we have not yet had the opportunity to conduct large-scale training ourselves, we draw on the most recent findings of an arxiv paper[3], whose experiments are built on equivalent objectives between **AO-AR** models and **MDLLM** [4]. A direct head-to-head comparison between AR and MDLLM would confound architectural effects: AR models are almost always implemented in a decoder-only form, whereas MDLLM is encoder-only. The authors therefore begin by contrasting an **AO-AR** model with a conventional **AR** model, since both can share the same decoder-only architecture and the AO-AR training objective is equivalent to that of MDLLM [4]. By simply juxtaposing the training losses of, for example, AO-AR and a baseline AR model, one can gauge the relative ease or difficulty of training MDLLM versus AR models.
@@ -151,7 +151,7 @@ $$
 
      Across all settings, the identity (left-to-right) order persistently yields the lowest loss, confirming that preserving the natural causal structure of language markedly eases training.
 
-     ![image.png](DLM_images/image4.png)
+     ![image.png](/images/dllm_images/image4.png)
      Moreover, the paper directly contrasts the AO-AR model with the original MDLLM—treating both as variants of MDLLM that differ only in architecture (AO-AR is **decoder-only**, whereas the original MDLLM is **encoder-only**). The authors find that the decoder-only AO-AR model lags behind the encoder-only MDLLM in performance; however, this deficit can be mitigated by ensembling predictions obtained from multiple input permutations during inference.
 
 ## 4 How to solve?
@@ -163,11 +163,11 @@ $$
    1. Empirical results in [6] show that, although a masked diffusion language model (MDLLM) theoretically requires every token to attend to the keys and values of all positions in the input sequence—forcing a complete refresh of **K** and **V** at each forward pass—the cosine similarity between the **K** and **V** vectors at the same position across consecutive denoising steps is nevertheless quite high (the authors verified this on two models, **LLaDA** [1] and **Dream** [13]).
    2. Leveraging this observation, one can implement a localized approximate KV-caching mechanism within a short temporal window (e.g., successive denoising steps inside the same block). Even though a strict KV-cache is formally incompatible with MDLLM, this high inter-step similarity can still be exploited to reduce redundant computation.
 
-      ![image.png](DLM_images/image5.png)
+      ![image.png](/images/dllm_images/image5.png)
 
    3. Because Fast-DLLM is based on **LLaDA[1]** and **Dream[13]**, consistency between training and inference requires that each forward pass still feed the prompt **and every block** into the model. This constraint led the authors to introduce **dual caching**. Standard KV-caching can be regarded as prefix caching, since it stores only the keys and values for positions preceding the current block. Dual caching, by contrast, also caches the tensors for the blocks following the current one—reflecting the fact that Fast-DLLM must repeatedly process the prompt together with the full set of blocks at every step.
 
-      ![image.png](DLM_images/image6.png)
+      ![image.png](/images/dllm_images/image6.png)
 
 2. **BD3LM [8]：more consistent KV-Cache**
 
@@ -183,7 +183,7 @@ $$
 
       iv. Their **Vectorized Training** strategy is also noteworthy: by concatenating $x_{0}$ and $x_{t}$ and employing a specially designed attention mask, they achieve highly efficient vectorized optimization. This constitutes an effective fusion of teacher forcing and diffusion-style training. Detailed mechanics are given in the paper—see especially Appendix B.6 on the Specialized Attention Mask—and are not expanded upon here.
 
-![image.png](DLM_images/image7.png)
+![image.png](/images/dllm_images/image7.png)
 
 ### 4.2 Parallel Decoding
 
@@ -203,7 +203,7 @@ $$
         \prod_{j=1}^{n}
         p_{j}(X_{i_{j}}\mid E)$.
   - Then we have：
-    ![image.png](DLM_images/image8.png)
+    ![image.png](/images/dllm_images/image8.png)
   - **This theorem indicates that greedy parallel decoding, which, given the current prefix, selects several future tokens independently by greedily sampling from the marginal distributions
     $p_{j}(X_{i_{j}}\mid E)$,** is identical to **greedy sequential decoding** from the full joint distribution $p(X\mid E)
     \;=\;
@@ -246,7 +246,7 @@ The central idea of **Multi-Token Prediction** is to emit several future tokens 
 
    Register tokens are periodically inserted into the input; their hidden states are used to predict several subsequent regular tokens. A recent instance is **MuToR** [7]. (MuToR is aimed not at higher throughput but at **improved performance**; recent work [11] suggests that MTP training, by injecting forecasts of future tokens, provides stronger planning signals. These issues, however, lie outside the focus of the present note.)
 
-![image.png](DLM_images/image9.png)
+![image.png](/images/dllm_images/image9.png)
 
 For today’s mainstream **Semi-AR MDLLM** variants, their behavior is in many ways reminiscent of **register-token** MTP schemes:
 
