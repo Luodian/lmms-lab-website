@@ -1,0 +1,451 @@
+/*
+ * OneVision Encoder — custom post page.
+ * Site design system only: two color tokens, the 5 --text-* sizes,
+ * border-radius 0, flat 1-2px borders, --font-mono for code and metadata.
+ */
+
+/* ---- header resources ---- */
+
+.resourceLinks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-sm);
+	margin-top: var(--space-md);
+}
+
+.resourceLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5em;
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--background);
+	text-decoration: none;
+	border: 2px solid var(--background);
+	padding: 0.375em 0.875em;
+	transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.resourceLink:hover {
+	background: var(--background);
+	color: var(--foreground);
+}
+
+/* ---- prose ---- */
+
+.prose {
+	font-size: var(--text-body);
+	line-height: 1.8;
+	color: #1a1a1a;
+}
+
+.prose p {
+	margin: 0 0 1.25em;
+}
+
+.prose a {
+	color: var(--background);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+	transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.prose a:hover {
+	opacity: 0.7;
+}
+
+.section {
+	margin-top: var(--space-xl);
+}
+
+.section:first-child {
+	margin-top: 0;
+}
+
+.sectionTitle {
+	font-size: var(--text-heading);
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--background);
+	margin: 0 0 0.75em;
+}
+
+/* ---- figures ---- */
+
+.figure {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin: var(--space-lg) 0 0;
+}
+
+.figureImage,
+.figureVideo {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	border: 2px solid var(--background);
+}
+
+/* ---- panels (patch grids, pipeline) ---- */
+
+.panel {
+	border: 2px solid var(--background);
+	background: rgba(var(--background-rgb), 0.04);
+	padding: var(--space-md);
+	margin: var(--space-lg) 0 0;
+}
+
+.panelTitle {
+	font-size: var(--text-subheading);
+	font-weight: 700;
+	color: var(--background);
+	text-align: center;
+	margin: 0 0 0.5em;
+}
+
+.prose .panelNote {
+	font-size: var(--text-caption);
+	line-height: 1.6;
+	opacity: 0.85;
+	margin: 0 0 var(--space-md);
+}
+
+/* ---- patch grids ---- */
+
+.patchRow {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+	.patchRow {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.patchBlock {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+	margin: 0;
+	min-width: 0;
+}
+
+.patchGrid {
+	display: grid;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+	gap: 2px;
+}
+
+.patchCell,
+.patchCellEmpty {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	border: 1px solid rgba(var(--background-rgb), 0.25);
+	background: rgba(var(--background-rgb), 0.08);
+}
+
+.patchCell {
+	object-fit: cover;
+	transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.patchCell:hover {
+	position: relative;
+	z-index: 10;
+	transform: scale(1.5);
+	box-shadow: 0 0 0 2px var(--background);
+}
+
+.patchLabel {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 600;
+	text-align: center;
+	color: var(--background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.patchCell:hover {
+		transform: none;
+	}
+}
+
+/* ---- pipeline carousel ---- */
+
+.pipelineLabels {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--space-sm);
+	margin-bottom: var(--space-sm);
+}
+
+.pipelineLabel {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 600;
+	line-height: 1.3;
+	text-align: center;
+	color: var(--background);
+}
+
+.pipelineVideo {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid rgba(var(--background-rgb), 0.25);
+}
+
+.prose .pipelineCaption {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	line-height: 1.6;
+	text-align: center;
+	opacity: 0.75;
+	max-width: 48rem;
+	margin: var(--space-md) auto 0;
+}
+
+.pipelineControls {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: var(--space-md);
+	margin-top: var(--space-md);
+}
+
+.pipelineArrow {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border: 2px solid var(--background);
+	background: transparent;
+	color: var(--background);
+	cursor: pointer;
+	transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.pipelineArrow:hover {
+	background: var(--background);
+	color: var(--foreground);
+}
+
+.pipelineDots {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.pipelineDot {
+	display: grid;
+	place-items: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+}
+
+.pipelineDot::before {
+	content: "";
+	width: 1.25rem;
+	height: 4px;
+	background: rgba(var(--background-rgb), 0.25);
+	transition: background-color var(--duration-fast) var(--ease-out), width var(--duration-fast) var(--ease-out);
+}
+
+.pipelineDot:hover::before {
+	background: rgba(var(--background-rgb), 0.5);
+}
+
+.pipelineDotActive::before {
+	width: 1.75rem;
+	background: var(--background);
+}
+
+/* ---- results tables ---- */
+
+.tableWrapper {
+	width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	margin: var(--space-lg) 0 0;
+}
+
+.resultsTable {
+	width: max-content;
+	min-width: 100%;
+	border-collapse: collapse;
+	border: 2px solid var(--background);
+	font-size: var(--text-caption);
+	font-variant-numeric: tabular-nums;
+	line-height: 1.4;
+}
+
+.resultsTable th,
+.resultsTable td {
+	border: 1px solid var(--background);
+	padding: var(--space-sm) var(--space-md);
+	text-align: center;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.resultsTable th {
+	background: var(--background);
+	color: var(--foreground);
+	font-weight: 700;
+}
+
+.resultsTable th.oursHead {
+	box-shadow: inset 0 -4px 0 0 var(--foreground);
+}
+
+.resultsTable .oursCol {
+	background: rgba(var(--background-rgb), 0.08);
+}
+
+.resultsTable .sepLeft {
+	border-left: 3px solid var(--background);
+}
+
+.resultsTable th.sepLeft {
+	border-left-color: var(--foreground);
+}
+
+.resultsTable .bestVal {
+	font-weight: 800;
+	color: var(--background);
+}
+
+.resultsTable .taskGroupCell {
+	background: var(--background);
+	color: var(--foreground);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.resultsTable .rowHeader {
+	text-align: left;
+	font-weight: 600;
+}
+
+.resultsTable .groupHeaderRow td {
+	background: rgba(var(--background-rgb), 0.12);
+	color: var(--background);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.resultsTable .rowAvg {
+	background: rgba(var(--background-rgb), 0.08);
+	font-weight: 600;
+}
+
+.methodTag {
+	font-family: var(--font-mono);
+	font-weight: 400;
+	opacity: 0.8;
+}
+
+.datasetIcon svg {
+	vertical-align: -0.125em;
+	margin-right: 0.5em;
+}
+
+.resultsTable .modelCell {
+	text-align: left;
+	white-space: normal;
+	min-width: 18rem;
+}
+
+.modelName {
+	font-weight: 600;
+}
+
+.modelMeta {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 400;
+	opacity: 0.75;
+	margin-top: 0.25em;
+}
+
+.modelMeta svg {
+	vertical-align: -0.125em;
+	margin-right: 0.4em;
+}
+
+.cellReduction {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 400;
+	opacity: 0.75;
+	margin-top: 0.25em;
+}
+
+/* ---- footnotes ---- */
+
+.prose .footnote {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	line-height: 1.6;
+	opacity: 0.75;
+	margin: var(--space-sm) 0 0;
+}
+
+.prose .footnoteCentered {
+	text-align: center;
+	margin-top: var(--space-md);
+}
+
+.footnoteBadge {
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.footnoteBadge svg {
+	vertical-align: -0.125em;
+	margin-right: 0.3em;
+}
+
+/* ---- bibtex ---- */
+
+.bibtex {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	line-height: 1.6;
+	color: #1a1a1a;
+	background: rgba(var(--background-rgb), 0.06);
+	border: 2px solid var(--background);
+	padding: var(--space-md) var(--space-lg);
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+	overflow-x: auto;
+}
+
+/* ---- page footer ---- */
+
+.pageFooter {
+	margin-top: var(--space-xl);
+	padding-top: var(--space-lg);
+	border-top: 2px solid var(--background);
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	text-align: center;
+	color: var(--background);
+	opacity: 0.85;
+}

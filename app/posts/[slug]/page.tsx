@@ -1,3 +1,4 @@
+import CommentsSection from "@/components/comments/CommentsSection";
 import { MDXRemoteWrapper } from "@/components/mdx/MDXRemoteWrapper";
 import { TableOfContents, MobileTableOfContents, ReadingProgress } from "@/components/blog";
 import { extractHeadings } from "@/lib/toc";
@@ -11,6 +12,7 @@ import LlavaOV15Page from "./llava-ov-1-5";
 import LlavaOV15RLPage from "./llava-ov-1-5-rl";
 import LlavaOV2Page from "./llava-ov-2";
 import LongVTPage from "./longvt";
+import OneVisionEncoderPage from "./onevision-encoder";
 
 export const dynamicParams = true;
 export const revalidate = 60;
@@ -72,20 +74,25 @@ export default async function PostPage({
 	const post = getPostBySlug(slug);
 
 	if (post) {
+		let article = <PostArticle post={post} />;
 		if (slug === "llava_onevision_1.5_rl") {
-			return <LlavaOV15RLPage post={post} />;
-		}
-		if (slug === "llava_onevision_1_5") {
-			return <LlavaOV15Page post={post} />;
-		}
-		if (slug === "llava_onevision_2") {
-			return <LlavaOV2Page post={post} />;
-		}
-		if (slug === "longvt") {
-			return <LongVTPage post={post} />;
+			article = <LlavaOV15RLPage post={post} />;
+		} else if (slug === "llava_onevision_1_5") {
+			article = <LlavaOV15Page post={post} />;
+		} else if (slug === "llava_onevision_2") {
+			article = <LlavaOV2Page post={post} />;
+		} else if (slug === "longvt") {
+			article = <LongVTPage post={post} />;
+		} else if (slug === "onevision_encoder") {
+			article = <OneVisionEncoderPage post={post} />;
 		}
 
-		return <PostArticle post={post} />;
+		return (
+			<>
+				{article}
+				<CommentsSection kind="post" slug={slug} />
+			</>
+		);
 	}
 
 	const entry = await getPublishedDbEntryBySlug("post", slug);
@@ -94,12 +101,15 @@ export default async function PostPage({
 	}
 
 	return (
-		<PostArticle
-			post={{
-				...entry,
-				content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
-			}}
-		/>
+		<>
+			<PostArticle
+				post={{
+					...entry,
+					content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
+				}}
+			/>
+			<CommentsSection kind="post" slug={slug} />
+		</>
 	);
 }
 

@@ -14,7 +14,6 @@ const STATIC_PAGES: Array<{
 	{ path: "/posts/", changeFrequency: "daily", priority: 0.9 },
 	{ path: "/notes/", changeFrequency: "weekly", priority: 0.8 },
 	{ path: "/about/", changeFrequency: "monthly", priority: 0.6 },
-	{ path: "/onevision-encoder/", changeFrequency: "monthly", priority: 0.8 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
