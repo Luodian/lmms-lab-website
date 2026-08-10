@@ -1079,6 +1079,9 @@ tbody tr:hover {
 	background: rgba(3, 105, 161, 0.1);
 	border: 1px solid rgba(3, 105, 161, 0.2);
 	color: var(--background);
+	/* Inline code wraps as one unit: the bordered chip never splits
+	   across lines. Code blocks restore normal behavior below. */
+	white-space: nowrap;
 }
 
 /* Code blocks - Mac terminal style */
@@ -1103,6 +1106,7 @@ tbody tr:hover {
 	font-size: inherit;
 	display: block;
 	min-width: 100%;
+	white-space: pre;
 }
 
 /* Syntax highlighting container */
