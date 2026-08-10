@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { PublishNotice } from "@/components/blog/PublishNotice";
+import { getPublishedDbEntries } from "@/lib/blog-db";
 import { getAllPosts } from "@/lib/posts";
 import { PostsClient } from "./PostsClient";
 import type { Post } from "@/lib/posts";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
 	title: "Posts - LMMs-Lab",
@@ -23,11 +27,23 @@ const ONEVISION_ENCODER_ARCHIVE_ENTRY: Post = {
 	content: "",
 };
 
-export default function PostsPage() {
+export default async function PostsPage() {
 	const posts = getAllPosts();
 	const postsWithOneVision = posts.some((post) => post.slug === ONEVISION_ENCODER_ARCHIVE_ENTRY.slug)
 		? posts
 		: [ONEVISION_ENCODER_ARCHIVE_ENTRY, ...posts];
 
-	return <PostsClient posts={postsWithOneVision} />;
+	const dbPosts = await getPublishedDbEntries("post");
+	const fileSlugs = new Set(postsWithOneVision.map((post) => post.slug));
+	const allPosts = [
+		...postsWithOneVision,
+		...dbPosts.filter((post) => !fileSlugs.has(post.slug)),
+	].sort((a, b) => (a.date > b.date ? -1 : 1));
+
+	return (
+		<>
+			<PostsClient posts={allPosts} />
+			<PublishNotice />
+		</>
+	);
 }

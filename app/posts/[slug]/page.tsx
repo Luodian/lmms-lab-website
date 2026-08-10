@@ -1,13 +1,19 @@
 import { MDXRemoteWrapper } from "@/components/mdx/MDXRemoteWrapper";
 import { TableOfContents, MobileTableOfContents, ReadingProgress } from "@/components/blog";
 import { extractHeadings } from "@/lib/toc";
-import { getAllPosts, getPostBySlug } from "@/lib/posts";
+import { getPublishedDbEntryBySlug } from "@/lib/blog-db";
+import { getAllPosts, getPostBySlug, stripMdxImports, transformHtmlStyleToJsx } from "@/lib/posts";
+import type { Post } from "@/lib/posts";
+import { SITE_URL } from "@/lib/site";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import LlavaOV15Page from "./llava-ov-1-5";
 import LlavaOV15RLPage from "./llava-ov-1-5-rl";
 import LlavaOV2Page from "./llava-ov-2";
 import LongVTPage from "./longvt";
+
+export const dynamicParams = true;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
 	const posts = getAllPosts();
@@ -23,7 +29,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
 	const { slug } = await params;
 	const post = getPostBySlug(slug);
-	if (!post) {
+	if (post) {
+		return {
+			title: `${post.title} - LMMs-Lab`,
+			description: post.description,
+			alternates: {
+				canonical: `/posts/${slug}/`,
+			},
+		};
+	}
+
+	const entry = await getPublishedDbEntryBySlug("post", slug);
+	if (!entry) {
 		return {
 			title: "Post Not Found",
 			alternates: {
@@ -32,13 +49,18 @@ export async function generateMetadata({
 		};
 	}
 
-	return {
-		title: `${post.title} - LMMs-Lab`,
-		description: post.description,
+	const metadata: Metadata = {
+		title: `${entry.title} - LMMs-Lab`,
+		description: entry.description,
 		alternates: {
-			canonical: `/posts/${slug}/`,
+			canonical: `${SITE_URL}/posts/${slug}/`,
 		},
 	};
+	if (entry.thumbnail) {
+		metadata.openGraph = { images: [entry.thumbnail] };
+		metadata.twitter = { card: "summary_large_image", images: [entry.thumbnail] };
+	}
+	return metadata;
 }
 
 export default async function PostPage({
@@ -49,27 +71,39 @@ export default async function PostPage({
 	const { slug } = await params;
 	const post = getPostBySlug(slug);
 
-	if (!post) {
+	if (post) {
+		if (slug === "llava_onevision_1.5_rl") {
+			return <LlavaOV15RLPage post={post} />;
+		}
+		if (slug === "llava_onevision_1_5") {
+			return <LlavaOV15Page post={post} />;
+		}
+		if (slug === "llava_onevision_2") {
+			return <LlavaOV2Page post={post} />;
+		}
+		if (slug === "longvt") {
+			return <LongVTPage post={post} />;
+		}
+
+		return <PostArticle post={post} />;
+	}
+
+	const entry = await getPublishedDbEntryBySlug("post", slug);
+	if (!entry) {
 		notFound();
 	}
 
-	if (slug === "llava_onevision_1.5_rl") {
-		return <LlavaOV15RLPage post={post} />;
-	}
-	if (slug === "llava_onevision_1_5") {
-		return <LlavaOV15Page post={post} />;
-	}
-	if (slug === "llava_onevision_2") {
-		return <LlavaOV2Page post={post} />;
-	}
-	if (slug === "longvt") {
-		return <LongVTPage post={post} />;
-	}
+	return (
+		<PostArticle
+			post={{
+				...entry,
+				content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
+			}}
+		/>
+	);
+}
 
-	if (!post) {
-		notFound();
-	}
-
+function PostArticle({ post }: { post: Post }) {
 	const headings = extractHeadings(post.content);
 
 	return (

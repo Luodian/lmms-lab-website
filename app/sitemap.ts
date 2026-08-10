@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
+import { getPublishedDbEntries } from "@/lib/blog-db";
 import { getAllNotes, getAllPosts } from "@/lib/posts";
 import { SITE_URL } from "@/lib/site";
+
+export const revalidate = 3600;
 
 const STATIC_PAGES: Array<{
 	path: string;
@@ -14,7 +17,7 @@ const STATIC_PAGES: Array<{
 	{ path: "/onevision-encoder/", changeFrequency: "monthly", priority: 0.8 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const now = new Date();
 
 	const staticEntries: MetadataRoute.Sitemap = STATIC_PAGES.map((page) => ({
@@ -38,5 +41,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		priority: 0.5,
 	}));
 
-	return [...staticEntries, ...postEntries, ...noteEntries];
+	const dbPostEntries: MetadataRoute.Sitemap = (await getPublishedDbEntries("post")).map((post) => ({
+		url: new URL(`/posts/${post.slug}/`, SITE_URL).toString(),
+		lastModified: new Date(post.date),
+		changeFrequency: "monthly",
+		priority: 0.7,
+	}));
+
+	const dbNoteEntries: MetadataRoute.Sitemap = (await getPublishedDbEntries("note")).map((note) => ({
+		url: new URL(`/notes/${note.slug}/`, SITE_URL).toString(),
+		lastModified: new Date(note.date),
+		changeFrequency: "monthly",
+		priority: 0.5,
+	}));
+
+	return [...staticEntries, ...postEntries, ...noteEntries, ...dbPostEntries, ...dbNoteEntries];
 }

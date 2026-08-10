@@ -1,7 +1,13 @@
 import { MDXRemoteWrapper } from "@/components/mdx/MDXRemoteWrapper";
-import { getAllNotes, getNoteBySlug } from "@/lib/posts";
+import { getPublishedDbEntryBySlug } from "@/lib/blog-db";
+import { getAllNotes, getNoteBySlug, stripMdxImports, transformHtmlStyleToJsx } from "@/lib/posts";
+import type { Post } from "@/lib/posts";
+import { SITE_URL } from "@/lib/site";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+
+export const dynamicParams = true;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
 	const notes = getAllNotes();
@@ -17,7 +23,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
 	const { slug } = await params;
 	const note = getNoteBySlug(slug);
-	if (!note) {
+	if (note) {
+		return {
+			title: `${note.title} - LMMs-Lab`,
+			description: note.description,
+			alternates: {
+				canonical: `/notes/${slug}/`,
+			},
+		};
+	}
+
+	const entry = await getPublishedDbEntryBySlug("note", slug);
+	if (!entry) {
 		return {
 			title: "Note Not Found",
 			alternates: {
@@ -26,13 +43,18 @@ export async function generateMetadata({
 		};
 	}
 
-	return {
-		title: `${note.title} - LMMs-Lab`,
-		description: note.description,
+	const metadata: Metadata = {
+		title: `${entry.title} - LMMs-Lab`,
+		description: entry.description,
 		alternates: {
-			canonical: `/notes/${slug}/`,
+			canonical: `${SITE_URL}/notes/${slug}/`,
 		},
 	};
+	if (entry.thumbnail) {
+		metadata.openGraph = { images: [entry.thumbnail] };
+		metadata.twitter = { card: "summary_large_image", images: [entry.thumbnail] };
+	}
+	return metadata;
 }
 
 export default async function NotePage({
@@ -43,10 +65,26 @@ export default async function NotePage({
 	const { slug } = await params;
 	const note = getNoteBySlug(slug);
 
-	if (!note) {
+	if (note) {
+		return <NoteArticle note={note} />;
+	}
+
+	const entry = await getPublishedDbEntryBySlug("note", slug);
+	if (!entry) {
 		notFound();
 	}
 
+	return (
+		<NoteArticle
+			note={{
+				...entry,
+				content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
+			}}
+		/>
+	);
+}
+
+function NoteArticle({ note }: { note: Post }) {
 	return (
 		<div className="blog-content-wrapper">
 			<div className="blog-layout blog-layout-single">
