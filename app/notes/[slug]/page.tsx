@@ -1,3 +1,4 @@
+import CommentsSection from "@/components/comments/CommentsSection";
 import { MDXRemoteWrapper } from "@/components/mdx/MDXRemoteWrapper";
 import { getPublishedDbEntryBySlug } from "@/lib/blog-db";
 import { getAllNotes, getNoteBySlug, stripMdxImports, transformHtmlStyleToJsx } from "@/lib/posts";
@@ -66,7 +67,12 @@ export default async function NotePage({
 	const note = getNoteBySlug(slug);
 
 	if (note) {
-		return <NoteArticle note={note} />;
+		return (
+			<>
+				<NoteArticle note={note} />
+				<CommentsSection kind="note" slug={slug} />
+			</>
+		);
 	}
 
 	const entry = await getPublishedDbEntryBySlug("note", slug);
@@ -75,12 +81,15 @@ export default async function NotePage({
 	}
 
 	return (
-		<NoteArticle
-			note={{
-				...entry,
-				content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
-			}}
-		/>
+		<>
+			<NoteArticle
+				note={{
+					...entry,
+					content: transformHtmlStyleToJsx(stripMdxImports(entry.content)),
+				}}
+			/>
+			<CommentsSection kind="note" slug={slug} />
+		</>
 	);
 }
 

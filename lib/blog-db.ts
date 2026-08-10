@@ -172,3 +172,14 @@ export function getReservedSlugs(kind: EntryKind): Set<string> {
 	}
 	return reserved;
 }
+
+export interface CommentRow {
+	id: string;
+	kind: EntryKind;
+	slug: string;
+	author_id: string;
+	content: string;
+	created_at: string;
+	updated_at: string;
+	profiles?: Pick<ProfileRow, "display_name" | "avatar_url"> | null;
+}
