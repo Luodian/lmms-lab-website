@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ImageLightbox } from "./ZoomableImage";
 
 interface ResponsiveImageProps {
   src: string;
@@ -56,30 +57,11 @@ export function ResponsiveImage({
       </figure>
 
       {isExpanded && (
-        <div
-          onClick={() => setIsExpanded(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "var(--space-lg)",
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src={src}
-            alt={alt}
-            style={{
-              maxWidth: "95vw",
-              maxHeight: "95vh",
-              objectFit: "contain",
-            }}
-          />
-        </div>
+        <ImageLightbox
+          src={src}
+          alt={caption || alt}
+          onClose={() => setIsExpanded(false)}
+        />
       )}
     </>
   );

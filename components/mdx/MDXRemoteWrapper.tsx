@@ -1,5 +1,6 @@
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { ResponsiveImage } from "./ResponsiveImage";
+import { ZoomableImage } from "./ZoomableImage";
 import { ResourceCard } from "./ResourceCard";
 import { QuickLinks } from "./QuickLinks";
 import { CodeDemo } from "./CodeDemo";
@@ -29,15 +30,7 @@ const components = {
   PixelDivider,
   PixelRadar,
   img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    <img
-      {...props}
-      style={{
-        maxWidth: "100%",
-        height: "auto",
-        boxShadow: "0 0 0 1px currentColor",
-        margin: "var(--space-md) 0",
-      }}
-    />
+    <ZoomableImage {...props} />
   ),
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a
