@@ -1,0 +1,254 @@
+/* =============================================================================
+ * Studio - publishing dashboard for editors and admins.
+ * Brutalist: two colors, radius 0, box-shadow outlines, mono for metadata.
+ * ============================================================================= */
+
+.container {
+	min-height: 60vh;
+	padding: var(--space-xl) var(--space-lg);
+}
+
+@media (max-width: 768px) {
+	.container {
+		padding: var(--space-lg) var(--space-md);
+	}
+}
+
+.inner {
+	max-width: 64rem;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-lg);
+}
+
+.pageHeader {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.pageTitle {
+	font-family: var(--font-heading);
+	font-size: var(--text-heading);
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	margin: 0;
+}
+
+.pageHint {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.65;
+	margin: 0;
+}
+
+/* ── Panels (not configured / reader gate) ── */
+
+.panel {
+	max-width: 44rem;
+	padding: var(--space-lg);
+	box-shadow: 0 0 0 1px currentColor;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-md);
+}
+
+.panelBody {
+	font-size: var(--text-body);
+	line-height: 1.7;
+	margin: 0;
+}
+
+.panelLink {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+/* ── Inline action errors ── */
+
+.errorLine {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	background: var(--foreground);
+	color: var(--background);
+	padding: var(--space-sm) var(--space-md);
+	margin: 0;
+}
+
+/* ── Sections ── */
+
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+}
+
+.sectionHeader {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--space-md);
+	flex-wrap: wrap;
+}
+
+.sectionHeading {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.sectionTitle {
+	font-family: var(--font-heading);
+	font-size: var(--text-subheading);
+	font-weight: 700;
+	margin: 0;
+}
+
+.sectionSubtitle {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.6;
+	margin: 0;
+}
+
+/* ── Entry list ── */
+
+.list {
+	box-shadow: 0 0 0 1px currentColor;
+	display: flex;
+	flex-direction: column;
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-md);
+	flex-wrap: wrap;
+	padding: var(--space-sm) var(--space-md);
+}
+
+.row + .row {
+	border-top: 1px solid currentColor;
+}
+
+.rowMain {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-sm);
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.rowTitle {
+	font-size: var(--text-body);
+	font-weight: 700;
+}
+
+.rowSlug {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.55;
+	word-break: break-all;
+}
+
+.rowByline {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.55;
+}
+
+.rowMeta {
+	display: flex;
+	align-items: center;
+	gap: var(--space-md);
+	flex-wrap: wrap;
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+}
+
+.rowDate {
+	opacity: 0.6;
+}
+
+.rowLink {
+	color: inherit;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.statusBadge {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 0 0.5em;
+	box-shadow: 0 0 0 1px currentColor;
+}
+
+.statusPublished {
+	background: var(--foreground);
+	color: var(--background);
+}
+
+.empty {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.5;
+	padding: var(--space-sm) var(--space-md);
+	margin: 0;
+}
+
+/* ── Buttons ── */
+
+.button {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: 0;
+	box-shadow: 0 0 0 1px currentColor;
+	padding: 0.4em 1em;
+	cursor: pointer;
+	transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.button:hover {
+	background: var(--foreground);
+	color: var(--background);
+}
+
+.button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px currentColor;
+}
+
+/* ── Draft preview (rendered inside the cream .blog-content-wrapper) ── */
+
+.previewBanner {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--background);
+	box-shadow: 0 0 0 2px currentColor;
+	padding: var(--space-sm) var(--space-md);
+	margin: 0 0 var(--space-lg);
+}

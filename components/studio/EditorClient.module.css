@@ -1,0 +1,261 @@
+/* =============================================================================
+ * EditorClient - the entry editing surface.
+ * Brutalist: two colors, radius 0, box-shadow outlines, mono editor fields.
+ * ============================================================================= */
+
+.container {
+	min-height: 60vh;
+	padding: var(--space-xl) var(--space-lg);
+}
+
+@media (max-width: 768px) {
+	.container {
+		padding: var(--space-lg) var(--space-md);
+	}
+}
+
+.inner {
+	max-width: 56rem;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+}
+
+/* ── Top bar ── */
+
+.topBar {
+	display: flex;
+	align-items: center;
+	gap: var(--space-md);
+	flex-wrap: wrap;
+}
+
+.backLink {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.kindLabel {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	opacity: 0.6;
+}
+
+.statusBadge {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 0 0.5em;
+	box-shadow: 0 0 0 1px currentColor;
+}
+
+.statusPublished {
+	background: var(--foreground);
+	color: var(--background);
+}
+
+.guidance {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.7;
+	margin: 0;
+}
+
+/* ── Form ── */
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.fieldGrid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+	.fieldGrid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.label {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	opacity: 0.75;
+}
+
+.fieldHint {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	opacity: 0.5;
+	margin: 0;
+	word-break: break-all;
+}
+
+.input,
+.textarea {
+	width: 100%;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: 0;
+	box-shadow: 0 0 0 1px currentColor;
+	padding: 0.5em 0.75em;
+	font-family: inherit;
+	font-size: var(--text-body);
+	line-height: 1.6;
+}
+
+.input:focus,
+.textarea:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px currentColor;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+	color: inherit;
+	opacity: 0.35;
+}
+
+.titleInput {
+	font-weight: 700;
+}
+
+.mono {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+}
+
+.textarea {
+	resize: vertical;
+}
+
+.contentArea {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	line-height: 1.7;
+	min-height: 28rem;
+}
+
+/* ── Buttons ── */
+
+.buttonRow {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	flex-wrap: wrap;
+}
+
+.buttonSpacer {
+	flex: 1;
+}
+
+.button {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: 0;
+	box-shadow: 0 0 0 1px currentColor;
+	padding: 0.4em 1em;
+	cursor: pointer;
+	text-decoration: none;
+	transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.button:hover {
+	background: var(--foreground);
+	color: var(--background);
+}
+
+.button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px currentColor;
+}
+
+.button:disabled {
+	opacity: 0.45;
+	cursor: default;
+	background: transparent;
+	color: inherit;
+}
+
+.buttonPrimary {
+	background: var(--foreground);
+	color: var(--background);
+}
+
+.buttonPrimary:hover {
+	background: transparent;
+	color: inherit;
+}
+
+.buttonQuiet {
+	opacity: 0.7;
+}
+
+.buttonQuiet:hover {
+	opacity: 1;
+}
+
+/* ── Messages and hints ── */
+
+.messageError {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	font-weight: 700;
+	background: var(--foreground);
+	color: var(--background);
+	padding: var(--space-sm) var(--space-md);
+	margin: 0;
+}
+
+.messageSuccess {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	box-shadow: 0 0 0 1px currentColor;
+	padding: var(--space-sm) var(--space-md);
+	margin: 0;
+	opacity: 0.85;
+}
+
+.hint {
+	font-family: var(--font-mono);
+	font-size: var(--text-caption);
+	line-height: 1.7;
+	opacity: 0.55;
+	margin: 0;
+}
+
+.hint code {
+	font-family: var(--font-mono);
+	opacity: 1;
+}
