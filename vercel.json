@@ -1,3 +1,4 @@
 {
-	"outputDirectory": "out"
+	"framework": "nextjs",
+	"regions": ["sin1"]
 }

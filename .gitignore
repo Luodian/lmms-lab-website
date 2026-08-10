@@ -39,3 +39,6 @@ UI_AUDIT_*.md
 UI_AUDIT_SUMMARY.txt
 screenshots/
 .env*.local
+
+# supabase CLI link state
+supabase/.temp/

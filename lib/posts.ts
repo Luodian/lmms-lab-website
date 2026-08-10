@@ -30,7 +30,7 @@ function ensureDirectoryExists(dir: string) {
 	}
 }
 
-function stripMdxImports(content: string): string {
+export function stripMdxImports(content: string): string {
 	return content
 		.split('\n')
 		.filter(line => !line.trim().startsWith('import '))
@@ -56,7 +56,7 @@ function convertStyleStringToJsx(styleString: string): string {
 	return `{{ ${properties.join(", ")} }}`;
 }
 
-function transformHtmlStyleToJsx(content: string): string {
+export function transformHtmlStyleToJsx(content: string): string {
 	return content.replace(
 		/style="([^"]*)"/g,
 		(_, styleValue) => `style=${convertStyleStringToJsx(styleValue)}`
@@ -170,10 +170,12 @@ export function getAllNotes(): Post[] {
 			const fileContents = fs.readFileSync(fullPath, "utf8");
 			const { data, content } = matter(fileContents);
 
+			const dateStr = data.publishDate || data.date;
+
 			return {
 				slug,
 				title: data.title || slug,
-				date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+				date: dateStr ? new Date(dateStr).toISOString() : new Date().toISOString(),
 				description: data.description || "",
 				tags: data.tags || [],
 				content,

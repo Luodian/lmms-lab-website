@@ -1,4 +1,4 @@
-const CUSTOM_PAGES: Record<string, string> = {
+export const CUSTOM_PAGES: Record<string, string> = {
 	onevision_encoder: "/onevision-encoder/",
 };
 
