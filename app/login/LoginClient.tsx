@@ -8,6 +8,10 @@ import styles from "./login.module.css";
 
 type Provider = "google" | "github";
 
+// Flip once the GitHub OAuth app is registered in Supabase; the provider
+// is not enabled there yet, so the button would only produce an error.
+const GITHUB_SIGN_IN_ENABLED = false;
+
 const SIGN_IN_FAILED = "Sign-in failed. Please try again.";
 
 function LoginForm() {
@@ -60,16 +64,18 @@ function LoginForm() {
 						? "Redirecting"
 						: "Continue with Google"}
 				</button>
-				<button
-					type="button"
-					className={styles.providerButton}
-					disabled={pendingProvider !== null}
-					onClick={() => void signIn("github")}
-				>
-					{pendingProvider === "github"
-						? "Redirecting"
-						: "Continue with GitHub"}
-				</button>
+				{GITHUB_SIGN_IN_ENABLED && (
+					<button
+						type="button"
+						className={styles.providerButton}
+						disabled={pendingProvider !== null}
+						onClick={() => void signIn("github")}
+					>
+						{pendingProvider === "github"
+							? "Redirecting"
+							: "Continue with GitHub"}
+					</button>
+				)}
 			</div>
 		</>
 	);
