@@ -1,0 +1,532 @@
+---
+title: "Symbols or Pixels?"
+description: "Zero-shot language reasoning versus VBVR-trained video generation on visual reasoning tasks."
+publishDate: "2026-09-27"
+tags: ["research", "reasoning", "video generation"]
+---
+
+<SPRuntime />
+
+## Abstract
+
+Video generation models are increasingly fine-tuned to solve visual reasoning tasks by rendering the solution as a video. We ask how this approach compares, in accuracy and inference cost, with a similarly sized language model that reads the first frame and answers in text. On VBVR-Pro-Bench, we pair two released VBVR-Pro video models, a 5B and a 27B-total (14B-active) Wan2.2, with zero-shot Qwen3.5-4B and Qwen3.6-27B, which describe the scene as a JSON layout before answering. On one GPU with a dense BF16 peak of 989 TFLOP/s, a text answer requires <b className="sp-n-lang">364×</b> (5B) and <b className="sp-n-lang">786×</b> (27B) less GPU time with batching, and <b className="sp-n-lang">8.2×</b> and <b className="sp-n-lang">16.0×</b> less without. With the layout prompt, the two families show no significant accuracy difference under the strict success threshold (text − video: +5.5 and +4.8 percentage points), whereas under a lenient threshold that also accepts near-miss videos, the video models lead by 9.7 and 13.3 points. The two families succeed on complementary samples: at 27B, at least one of them solves 68% of the samples, yet only 89 of 475 are solved by both. Exploratory analyses at 27B suggest that, under the strict threshold, language models are stronger on symbolic answers and video models on single-agent path finding; under the lenient threshold, video models are also stronger on pixel-position answers. The comparison is not matched in training: the language models are zero-shot and graded on the final answer, whereas the video models are fine-tuned on VBVR-Pro data and graded on the entire video with partial credit.
+
+**Contents:** [1 Introduction](#1-introduction) · [2 Related work](#2-related-work) · [3 Setup](#3-experimental-setup) · [4 Results](#4-results) · [5 Limitations](#5-limitations) · [6 Conclusion](#6-conclusion) · [References](#references) · [Appendix](#appendix)
+
+<SPCostFigure>
+
+**Figure 1:** Accuracy versus cost per answer on the paired tasks, measured on one GPU (dense BF16 peak 989 TFLOP/s). Squares denote VBVR-Pro video models; circles denote zero-shot Qwen models under one prompting strategy (filled: layout; ring: direct). Whiskers show 95% CIs over tasks. Dashed lines connect size-matched pairs and are annotated with the cost ratio. The x-axis is logarithmic. In the batched view, the video models are timed one video at a time (they were not batched); hollow squares mark the fastest possible time, at 100% of that peak.
+
+</SPCostFigure>
+
+## 1 Introduction
+
+Recent work has shown that video generation models can solve visual reasoning tasks by generating the solution as a video \[[1](#ref-veo3), [2](#ref-vbvr), [3](#ref-vbvrpro)\]. VBVR-Pro, for instance, fine-tunes open video models on procedurally generated reasoning tasks and evaluates the generated videos with task-specific, rule-based scorers that track objects across frames. Many of these tasks, however, can also be solved symbolically. This raises two questions. At a matched parameter count, how much does it cost to reason about such tasks in a symbolic language, such as a written scene layout, a sequence of symbolic states, or code, and to report only the final answer? And how does the resulting accuracy compare with that of video generation? Since neither VBVR paper evaluates a text, symbolic, or code-based solver, both questions remain open.
+
+The two approaches differ sharply in computational cost. A video model answers by propagating tens of thousands of latent tokens through dozens of denoising steps, whereas a language model reads the first frame and generates a few hundred to a few thousand tokens. The compute gap is therefore large by construction; whether rendering the solution yields a commensurate gain in accuracy is an empirical question.
+
+In this work, we pair two released VBVR-Pro checkpoints, a 5B model and a 27B-total, 14B-active mixture-of-experts model, with zero-shot Qwen language models of similar size and evaluate both on VBVR-Pro-Bench. The language models receive the same first frame, at the resolution at which the video models generate. We grade their final answers against answer specifications frozen before grading, grade the videos with the benchmark's own v2 scorer, and measure the inference cost of every model on the same type of GPU, with a dense BF16 peak of 989 TFLOP/s.
+
+Our contributions are as follows:
+
+- A paired protocol for comparing text and video reasoners on identical benchmark samples, comprising answer specifications frozen before grading and validated against ground truth, a calibration of the video scorer on ground-truth videos, and a reproduction of the published video scores ([Appendix A](#a-protocol-alignment-with-vbvr-pro)).
+- Measurements of GPU time per answer on identical hardware, both at batch size 1 and with batching, complemented by analytic forward FLOPs ([Figure 1](#fig-cost), [Appendix B](#b-computation-of-forward-flops)).
+- An analysis of where the two modes of reasoning differ: by task class and answer kind, by which samples each solves, and by failure mode, with side-by-side outputs of both ([Figure 2](#fig-groups), [Figure 3](#fig-agree), [Figure 4](#fig-fail), [Figure 5](#fig-explorer)).
+- A reproducible analysis in which all reported numbers are generated programmatically from the per-sample records ([Appendix F](#f-reproducibility)).
+
+The principal caveat concerns training: the language models are zero-shot and graded on the final answer, whereas the video models are fine-tuned on VBVR-Pro data and graded on the entire video with partial credit. The comparison is therefore not matched in training ([Section 5](#5-limitations)).
+
+## 2 Related work
+
+**Video models as reasoners.** Video models can solve some perception and reasoning tasks zero-shot by generating the solution \[[1](#ref-veo3)\]. VBVR and VBVR-Pro construct large procedural task suites, fine-tune open video models on them, and score the videos with rule-based scorers \[[2](#ref-vbvr), [3](#ref-vbvrpro)\]. Other benchmarks evaluate video models on mazes, puzzles, and games \[[4](#ref-vrbench), [5](#ref-mmgr)\]. Scoring the entire process of a video answer, rather than only its final state, substantially lowers video scores \[[6](#ref-viper)\]. The VBVR-Pro models evaluated here build on the Wan family of open video models \[[7](#ref-wan)\].
+
+**Reasoning in symbols and in pixels.** Several works interleave images with text during reasoning, such as visual thoughts drawn between reasoning steps \[[8](#ref-mvot)\] and plans composed of imagined images \[[9](#ref-visualplanning)\]. When a video model and a language model are fine-tuned on the same data, the video model performs better on mazes and on paths read from pixels \[[10](#ref-thinkframes), [4](#ref-vrbench)\], and visual world models help on geometry and physics \[[11](#ref-visworld)\]. On grid tasks, language models frequently write incorrect coordinates into the scene they describe, and these perception errors account for much of their failure \[[8](#ref-mvot), [9](#ref-visualplanning)\]. Text reasoners perform better on multi-object discrete puzzles such as Sokoban and Sudoku \[[4](#ref-vrbench), [12](#ref-motif), [5](#ref-mmgr)\]. Distilling visual thoughts into a text-only student can retain accuracy at a fraction of the wall-clock time \[[13](#ref-visualopsd)\].
+
+**Representation on ARC-AGI.** On ARC-AGI, a video diffusion model outperformed a language model of similar size when neither had access to ARC training data \[[14](#ref-arcpixels)\]. With the same model, program induction and direct transduction solve largely different ARC tasks \[[15](#ref-barc)\]. Zero-shot video models solve almost none of the ARC-AGI-2 tasks \[[16](#ref-arcvideo)\].
+
+**Code world models and cost.** Code world models learn rule-governed environments from few samples and simulate them far faster than a language model \[[17](#ref-poeworld), [18](#ref-gifmcts)\], and they outperform direct text-based play on ARC-AGI-3 at a matched budget \[[19](#ref-tycho)\]. One study reported large time and cost gaps between a video generator and a vision-language model of different sizes \[[20](#ref-collabvr)\]. To our knowledge, no prior work pairs size-matched text and video reasoners on the same benchmark samples and scorer while measuring cost on the same hardware.
+
+## 3 Experimental setup
+
+<div className="sp-table sp-wide">
+
+<span id="tab-models" className="sp-anchor" />**Table 1:** Models compared. Parameter counts for the language models include all weights (language model and vision encoder); those for the video models cover the denoising network (DiT), as stated on the model card.
+
+| Model | Checkpoint | Parameters | VBVR training | Output | Grading |
+| --- | --- | --- | --- | --- | --- |
+| G5 | VBVR-Pro-Wan2.2-TI2V-5B | 5B DiT | LoRA r32 on VBVR-Pro-SFT | Generates the solution video | v2 scorer, entire video |
+| G27 | VBVR-Pro-Wan2.2-I2V-A14B | 14B active / 27B total DiT | LoRA r32 on VBVR-Pro-SFT | Generates the solution video | v2 scorer, entire video |
+| Qwen3.5-4B | Qwen/Qwen3.5-4B | 4.7B (LM 4.4B + ViT 0.3B) | None (zero-shot) | Layout then answer, or direct answer | Answer specification, final answer |
+| Qwen3.5-9B | Qwen/Qwen3.5-9B | 9.7B (LM 9.2B + ViT 0.4B) | None (zero-shot) | Layout then answer, or direct answer | Answer specification, final answer |
+| Qwen3.6-27B | Qwen/Qwen3.6-27B | 27.8B (LM 27.4B + ViT 0.4B) | None (zero-shot) | Layout then answer, or direct answer | Answer specification, final answer |
+
+</div>
+
+### 3.1 Benchmark, answer specifications, and scorer calibration
+
+VBVR-Pro-Bench comprises 100 tasks, 50 in-domain and 50 out-of-domain, with 5 samples each (500 samples in total). In-domain tasks are among VBVR-Pro's training tasks; out-of-domain tasks are not. Each sample consists of a first frame (1024×1024 for most tasks), a text prompt stating the task, a ground-truth solution video, and a metadata file with the semantic ground truth, i.e., the answer that the solution video depicts.
+
+The v2 scorer (the VBVR-Pro-Bench evaluator at commit 95265d0, task-specific scorers only) reads the frames of a predicted video with OpenCV (color masks, contours, and object tracking) and returns a score between 0 and 1. Before grading any model, we froze, for 97 tasks, the metadata field that holds the final answer, the answer format given to the language model, and a comparator (exact match, a pixel tolerance, set match, or path validity on the grid). Each specification passed a known-answer check on all 5 samples: the ground-truth answer is graded correct, and a plausible incorrect answer is graded incorrect. Three tasks have no gradable final answer (two are pure animations, and in one the metadata contradicts the frames) and are excluded.
+
+We scored the 500 ground-truth videos with the same v2 scorer and removed two tasks: one whose ground-truth videos do not all reach a score of 0.9, and one in which a video that does nothing receives full marks. The comparison uses the remaining 95 tasks (47 in-domain, 48 out-of-domain; 475 samples). Before observing any result, we fixed four task classes: selection or marking (the answer is an index, a label, a count, or a point), multi-object discrete (an order or configuration of several objects), single-agent path (one agent's path through a grid, maze, or graph), and continuous (geometry and physics). We additionally split tasks by answer kind: answers that contain pixel positions, and all other answers.
+
+### 3.2 Video reasoners
+
+G5 denotes VBVR-Pro-Wan2.2-TI2V-5B (5B parameters), and G27 denotes VBVR-Pro-Wan2.2-I2V-A14B (27B parameters in total: a mixture of two 14B experts, one of which is active at each denoising step). Both are Wan2.2 models that the VBVR-Pro authors fine-tuned with rank-32 LoRA on VBVR-Pro-SFT (1.25M samples over 250 tasks); we use the released checkpoints ([Table 1](#tab-models)).
+
+Each model generates the solution video from the first frame and the task prompt at 512×512 resolution, with 81 frames, 50 denoising steps, and a classifier-free guidance scale of 5 (two network passes per step). The in-domain G5 videos use VBVR-Pro's own evaluation settings (seed and negative prompt); the remaining videos use our initial settings with the same resolution, length, number of steps, and guidance. Before scoring, VBVR-Pro's preparation script resizes each video to the 1024 canvas and truncates it to at most 5 seconds.
+
+### 3.3 Text reasoners
+
+We pair G5 with Qwen3.5-4B and G27 with Qwen3.6-27B, and include Qwen3.5-9B as an unpaired reference ([Table 1](#tab-models)). The language models are zero-shot and never see VBVR data. Each receives the first frame resized to 512×512, the task prompt, a reasoning instruction (the prompting strategy), and the answer format from the specification.
+
+We use four prompting strategies: direct (state only the final answer), layout (first describe the scene as a JSON layout of the relevant objects, with shape, color, pixel position, and size, then reason over it, then answer), states (write the initial state and each subsequent state symbolically), and code (write Python that computes the answer; a sandbox executes it, and its output is taken as the answer). The main results use layout and direct; states and code appear in the ablations ([Section 4.7](#47-ablations)). We decode with vLLM 0.29.0 in BF16, greedily (temperature 0), with thinking mode disabled and at most 2,048 new tokens. The answer is the JSON object on the last line that begins with ANSWER. Pixel values in an answer are rescaled from the 512×512 frame to the 1024 canvas before grading.
+
+### 3.4 Grading and statistical analysis
+
+A text answer counts as solved if it passes the specification's comparator. A video counts as solved if its v2 score is at least 0.9, the strict threshold fixed before any result was observed. A threshold of 0.7, fixed at the same time, serves as a sensitivity analysis, because the v2 scorers also grade the process (e.g., how the agent moves), whereas the text grader checks only the final answer.
+
+Rates are averaged over tasks, and differences are reported as text − video in percentage points (pp), paired by sample. We compute 95% confidence intervals (CIs) from 4,000 bootstrap resamples over tasks (seed 0), shown in brackets, and refer to a difference as significant when its CI excludes zero. The analyses by task class and answer kind are exploratory: the class-level predictions specified before the study concern a fine-tuned language model, which this paper does not evaluate, and significance in these analyses is not corrected for multiple comparisons.
+
+### 3.5 Cost measurement
+
+All measurements were performed on one GPU of the same type, with a dense BF16 peak of 989 TFLOP/s. For text, "batched" runs all 485 requests of one prompting strategy in a single vLLM batch, and "batch size 1" sends one sample per task (97 requests) sequentially with prefix caching disabled. For video, we record the generation time of each video, generated one at a time. We also compute analytic forward FLOPs per answer: for video, the DiT forward pass over the latent tokens times 100 passes (50 steps, two passes each); for text, the vision encoder plus the language model over the prompt and the generated tokens ([Figure 1](#fig-cost), [Appendix B](#b-computation-of-forward-flops)).
+
+## 4 Results
+
+### 4.1 Inference cost per answer
+
+Textual reasoning is substantially cheaper than video generation at both model sizes ([Table 2](#tab-main), [Table 3](#tab-ratio), [Figure 1](#fig-cost)). With batched inference, a text answer takes <b className="sp-n-lang">0.061</b> s of GPU time for Qwen3.5-4B and <b className="sp-n-lang">0.309</b> s for Qwen3.6-27B (layout prompt), whereas generating a single video takes <b className="sp-n-video">22.0</b> s with G5 and <b className="sp-n-video">243</b> s with G27, corresponding to <b className="sp-n-lang">364×</b> and <b className="sp-n-lang">786×</b> less GPU time. Without batching, the gap narrows to 8.2× and 16.0×, because a single decoding stream is memory-bound: each new token requires reading all model weights, so the GPU operates at only 0.4% to 0.8% of its dense BF16 peak. Batching 485 requests raises this utilization to 20% to 33%. The video models, in contrast, already reach 27% (G5) and 38% (G27) of peak when generating a single video, so batching could accelerate them by at most 3.7× and 2.7×; even at full utilization, they would remain 97× and 295× slower than batched text inference. The analytic forward FLOPs, which differ by 480× and 1,026× per answer, corroborate the magnitude of the gap ([Appendix B](#b-computation-of-forward-flops)), and the gap persists when cost is normalized by accuracy: per solved answer, batched text inference is 453× and 878× cheaper under the strict threshold and 270× and 609× cheaper under the lenient one.
+
+<div className="sp-table sp-wide">
+
+<span id="tab-main" className="sp-anchor" />**Table 2:** Cost and accuracy per model and prompting strategy on the paired tasks. Solve rates are task-weighted, with 95% bootstrap CIs; a text answer is either correct or incorrect at both thresholds. GPU-s / solved uses the batched text time and the one-at-a-time video time, at 0.9 (in parentheses: at 0.7).
+
+| Model | Prompt | Solve rate, v2 ≥ 0.9 | Solve rate, v2 ≥ 0.7 | GPU-s, batch size 1 | GPU-s, batched | FLOPs / answer | Truncated | GPU-s / solved |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| G5 | – | 0.223 <span className="sp-ci">\[0.16, 0.29\]</span> | 0.375 <span className="sp-ci">\[0.30, 0.46\]</span> | 22.0 | <span className="sp-ci">≥ 5.9 at peak</span> | 5.8×10<sup>15</sup> | – | 99 <span className="sp-ci">(59)</span> |
+| G27 | – | 0.410 <span className="sp-ci">\[0.33, 0.49\]</span> | 0.592 <span className="sp-ci">\[0.51, 0.67\]</span> | 242.9 | <span className="sp-ci">≥ 91.2 at peak</span> | 9.0×10<sup>16</sup> | – | 592 <span className="sp-ci">(411)</span> |
+| Qwen3.5-4B | layout | 0.278 <span className="sp-ci">\[0.21, 0.35\]</span> | <span className="sp-ci">same</span> | 2.69 | 0.061 | 1.2×10<sup>13</sup> | 15% | 0.22 |
+| Qwen3.5-4B | direct | 0.331 <span className="sp-ci">\[0.25, 0.41\]</span> | <span className="sp-ci">same</span> | 2.72 | 0.061 | 1.2×10<sup>13</sup> | 25% | 0.19 |
+| Qwen3.5-9B | layout | 0.349 <span className="sp-ci">\[0.28, 0.42\]</span> | <span className="sp-ci">same</span> | 5.29 | 0.090 | 2.9×10<sup>13</sup> | 27% | 0.26 |
+| Qwen3.5-9B | direct | 0.305 <span className="sp-ci">\[0.23, 0.38\]</span> | <span className="sp-ci">same</span> | 2.11 | 0.056 | 1.7×10<sup>13</sup> | 13% | 0.18 |
+| Qwen3.6-27B | layout | 0.459 <span className="sp-ci">\[0.38, 0.54\]</span> | <span className="sp-ci">same</span> | 15.23 | 0.309 | 8.8×10<sup>13</sup> | 25% | 0.67 |
+| Qwen3.6-27B | direct | 0.503 <span className="sp-ci">\[0.42, 0.58\]</span> | <span className="sp-ci">same</span> | 11.21 | 0.215 | 7.0×10<sup>13</sup> | 20% | 0.43 |
+
+</div>
+
+<div className="sp-table sp-wide">
+
+<span id="tab-ratio" className="sp-anchor" />**Table 3:** Video-to-text ratios per answer, and the paired difference in solve rate (text − video, in pp, with 95% CIs). "Video at peak" compares batched text inference with the video model running at 100% of the GPU's dense BF16 peak (989 TFLOP/s).
+
+| Video ÷ text | Prompt | FLOPs | GPU time, batch size 1 | GPU time, batched | Video at peak | Per solved answer, batched | Text − video, 0.9 | Text − video, 0.7 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| G5 ÷ Qwen3.5-4B | layout | 480× | <b className="sp-n-lang">8.2×</b> | <b className="sp-n-lang">364×</b> | 97× | 453× <span className="sp-ci">(270×)</span> | <b className="sp-n-level">+5.5</b> <span className="sp-ci">\[−4.0, +14.9\]</span> | <b className="sp-n-level">−9.7</b> <span className="sp-ci">\[−20.2, +0.6\]</span> |
+| G5 ÷ Qwen3.5-4B | direct | 482× | <b className="sp-n-lang">8.1×</b> | <b className="sp-n-lang">359×</b> | 96× | 531× <span className="sp-ci">(316×)</span> | <b className="sp-n-lang">+10.7</b> <span className="sp-ci">\[+0.6, +20.4\]</span> | <b className="sp-n-level">−4.4</b> <span className="sp-ci">\[−15.4, +6.1\]</span> |
+| G27 ÷ Qwen3.6-27B | layout | 1,026× | <b className="sp-n-lang">16.0×</b> | <b className="sp-n-lang">786×</b> | 295× | 878× <span className="sp-ci">(609×)</span> | <b className="sp-n-level">+4.8</b> <span className="sp-ci">\[−6.5, +16.4\]</span> | <b className="sp-n-video">−13.3</b> <span className="sp-ci">\[−24.6, −1.9\]</span> |
+| G27 ÷ Qwen3.6-27B | direct | 1,293× | <b className="sp-n-lang">22×</b> | <b className="sp-n-lang">1,130×</b> | 424× | 1,386× <span className="sp-ci">(962×)</span> | <b className="sp-n-level">+9.3</b> <span className="sp-ci">\[−2.3, +20.6\]</span> | <b className="sp-n-level">−8.8</b> <span className="sp-ci">\[−20.6, +2.7\]</span> |
+
+</div>
+
+### 4.2 Accuracy at matched scale
+
+With the layout prompt, the zero-shot language models show no significant difference from the fine-tuned video models under the strict threshold ([Table 3](#tab-ratio)). Qwen3.5-4B attains a solve rate of <b className="sp-n-lang">0.278</b>, compared with <b className="sp-n-video">0.223</b> for G5, and Qwen3.6-27B attains <b className="sp-n-lang">0.459</b>, compared with <b className="sp-n-video">0.410</b> for G27, corresponding to differences of +5.5 and +4.8 pp. Relaxing the threshold to 0.7 shifts the comparison in favor of the video models, which then achieve higher solve rates by 9.7 pp at 5B and 13.3 pp at 27B; only the latter difference is significant. This shift is concentrated on the in-domain tasks encountered during fine-tuning: at 27B, the difference under the lenient threshold is −27.2 pp on in-domain tasks but +0.4 pp on out-of-domain tasks. Direct answering yields slightly higher solve rates than layout prompting (0.331 at 4B and 0.503 at 27B), although these gains fall within the CIs; with direct answering, the 4B model outperforms G5 significantly under the strict threshold (+10.7 pp), the only significant difference for this prompt. [Section 4.7](#47-ablations) compares all four prompting strategies.
+
+<SPContrast>
+
+<SPConfigBar />
+
+### 4.3 Where symbolic and visual reasoning differ
+
+[Figure 2](#fig-groups) decomposes the primary comparison (27B, layout prompt, strict threshold) by split, task class, and answer kind, and [Table 4](#tab-groups) reports both pairs under both thresholds. The clearest pattern emerges along answer kind. When the answer is symbolic rather than a pixel position, such as an option, a count, an order, a value, or a list of grid cells, the language models significantly outperform the video models under the strict threshold at both scales, by <b className="sp-n-lang">18.8</b> pp at 27B and <b className="sp-n-lang">20.8</b> pp at 5B. Conversely, when the answer is a pixel position, the advantage shifts to the video models: at 27B, the difference of <b className="sp-n-video">10.7</b> pp in their favor under the strict threshold is not significant, but it grows to a significant <b className="sp-n-video">26.7</b> pp under the lenient threshold. Among the task classes, the video models significantly outperform the language models on single-agent path finding, by <b className="sp-n-video">29.1</b> pp at 27B under the strict threshold; this class, however, comprises only 11 tasks, 9 of which are in-domain. The remaining three classes show no significant difference in this configuration. Part of the pixel-answer gap is attributable to the matched 512² input, since the language models perform substantially better on pixel answers at the native 1024² resolution ([Section 4.7](#47-ablations)). As none of these comparisons was specified in advance as a hypothesis test, we regard them as exploratory.
+
+<SPGroupsFigure>
+
+**Figure 2:** Paired difference in solve rate (text − video, in pp) by split, task class, and answer kind, with 95% CIs over tasks. The figure opens on the primary configuration (27B, layout prompt, v2 ≥ 0.9); the control bar above changes it. Row labels give the number of tasks. Hover over or tab to a row to see both rates.
+
+</SPGroupsFigure>
+
+<div className="sp-table sp-wide">
+
+<span id="tab-groups" className="sp-anchor" />**Table 4:** Data underlying [Figure 2](#fig-groups) for the layout prompt: text − video in pp \[95% CI\], for both pairs and both thresholds. Colored entries denote CIs that exclude zero.
+
+| Group | Tasks (in-domain) | 5B, 0.9 | 5B, 0.7 | 27B, 0.9 | 27B, 0.7 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| All tasks | 95 (47) | <b className="sp-n-level">+5.5</b> <span className="sp-ci">\[−4.0, +14.9\]</span> | <b className="sp-n-level">−9.7</b> <span className="sp-ci">\[−20.2, +0.6\]</span> | <b className="sp-n-level">+4.8</b> <span className="sp-ci">\[−6.5, +16.4\]</span> | <b className="sp-n-video">−13.3</b> <span className="sp-ci">\[−24.6, −1.9\]</span> |
+| In-domain | 47 (47) | <b className="sp-n-level">−2.5</b> <span className="sp-ci">\[−17.0, +11.9\]</span> | <b className="sp-n-video">−25.1</b> <span className="sp-ci">\[−40.4, −9.8\]</span> | <b className="sp-n-level">−0.9</b> <span className="sp-ci">\[−16.2, +14.0\]</span> | <b className="sp-n-video">−27.2</b> <span className="sp-ci">\[−42.1, −12.8\]</span> |
+| Out-of-domain | 48 (0) | <b className="sp-n-lang">+13.3</b> <span className="sp-ci">\[+2.1, +25.0\]</span> | <b className="sp-n-level">+5.4</b> <span className="sp-ci">\[−7.9, +18.3\]</span> | <b className="sp-n-level">+10.4</b> <span className="sp-ci">\[−6.2, +26.7\]</span> | <b className="sp-n-level">+0.4</b> <span className="sp-ci">\[−17.1, +17.5\]</span> |
+| Selection / marking | 41 (16) | <b className="sp-n-level">+9.8</b> <span className="sp-ci">\[−4.9, +24.4\]</span> | <b className="sp-n-level">−3.9</b> <span className="sp-ci">\[−20.5, +12.2\]</span> | <b className="sp-n-level">+5.9</b> <span className="sp-ci">\[−9.3, +21.9\]</span> | <b className="sp-n-level">−9.3</b> <span className="sp-ci">\[−23.4, +6.3\]</span> |
+| Multi-object discrete | 26 (12) | <b className="sp-n-level">+3.1</b> <span className="sp-ci">\[−14.6, +20.8\]</span> | <b className="sp-n-level">−6.2</b> <span className="sp-ci">\[−25.4, +13.9\]</span> | <b className="sp-n-level">+9.2</b> <span className="sp-ci">\[−15.4, +33.1\]</span> | <b className="sp-n-level">−6.2</b> <span className="sp-ci">\[−31.5, +20.0\]</span> |
+| Single-agent path | 11 (9) | <b className="sp-n-level">−10.9</b> <span className="sp-ci">\[−34.5, +9.1\]</span> | <b className="sp-n-video">−29.1</b> <span className="sp-ci">\[−52.7, −7.3\]</span> | <b className="sp-n-video">−29.1</b> <span className="sp-ci">\[−49.1, −10.9\]</span> | <b className="sp-n-video">−43.6</b> <span className="sp-ci">\[−67.3, −20.0\]</span> |
+| Continuous | 17 (10) | <b className="sp-n-level">+9.4</b> <span className="sp-ci">\[−12.9, +32.9\]</span> | <b className="sp-n-level">−16.5</b> <span className="sp-ci">\[−43.5, +10.6\]</span> | <b className="sp-n-level">+17.6</b> <span className="sp-ci">\[−12.9, +48.2\]</span> | <b className="sp-n-level">−14.1</b> <span className="sp-ci">\[−43.5, +16.5\]</span> |
+| Pixel-position answer | 45 (17) | <b className="sp-n-level">−11.6</b> <span className="sp-ci">\[−24.4, +0.4\]</span> | <b className="sp-n-video">−23.6</b> <span className="sp-ci">\[−37.8, −10.2\]</span> | <b className="sp-n-level">−10.7</b> <span className="sp-ci">\[−27.1, +5.8\]</span> | <b className="sp-n-video">−26.7</b> <span className="sp-ci">\[−42.2, −9.8\]</span> |
+| Non-pixel answer | 50 (30) | <b className="sp-n-lang">+20.8</b> <span className="sp-ci">\[+7.6, +33.2\]</span> | <b className="sp-n-level">+2.8</b> <span className="sp-ci">\[−12.0, +17.6\]</span> | <b className="sp-n-lang">+18.8</b> <span className="sp-ci">\[+3.6, +33.6\]</span> | <b className="sp-n-level">−1.2</b> <span className="sp-ci">\[−16.8, +14.4\]</span> |
+
+</div>
+
+### 4.4 Complementary successes
+
+Beyond aggregate accuracy, the two families succeed on markedly different samples ([Figure 3](#fig-agree)). At 27B, only 89 of the 475 paired samples are solved by both models, whereas <b className="sp-n-lang">129</b> are solved only by the language model and <b className="sp-n-video">106</b> only by the video model. Consequently, the union of the two models attains a solve rate of 0.682, compared with 0.459 for the better model alone; at 5B, the corresponding values are 0.438 and 0.278. Although this union is an oracle upper bound, since no mechanism selects the appropriate model for each sample, it indicates substantial complementarity between the two approaches. The division again follows the answer kind: on non-pixel answers, 85 samples are solved only by the language model and 38 only by the video model, whereas on pixel answers the corresponding counts are 44 and 68.
+
+<SPAgreeFigure>
+
+**Figure 3:** All paired samples by outcome. The right column reports the union (the fraction solved by at least one model) alongside the better model alone; the union is an oracle upper bound, not an ensemble score.
+
+</SPAgreeFigure>
+
+### 4.5 Failure modes
+
+The two families also fail in qualitatively different ways ([Figure 4](#fig-fail)). With the layout prompt, 139 of Qwen3.6-27B's 475 answers (29%) are parsed but incorrect, and a further 118 (25%) exhaust the 2,048-token budget before reaching the answer line; at 4B, another 58 answers (12%) terminate without a parsable answer. Direct answering shortens the outputs, yet 93 of Qwen3.6-27B's direct answers still reach the limit. The video scores, in contrast, are bimodal: G27 scores below 0.1 on 73 samples and at least 0.9 on 195, while 86 samples (18%) fall between 0.7 and 0.9. These near misses count as solved only under the lenient threshold, and because the v2 scorers award partial credit for the process, this band reflects properties of the scorer as well as of the reasoning.
+
+<SPFailFigure>
+
+**Figure 4:** Left: outcomes of each language model's answers under each prompting strategy over the paired samples; the language model of the selected pair is shown in bold. Right: v2 scores of the two video models' outputs in bins of 0.1. The shaded band between 0.7 and 0.9 contains the near misses that only the lenient threshold counts as solved.
+
+</SPFailFigure>
+
+### 4.6 Qualitative examples
+
+[Figure 5](#fig-explorer) shows what the two modes of reasoning produce on the same sample: the videos generated by the video models alongside the layout, reasoning, and answer written by the language models. The task map at the top colors each task by the number of its five samples solved by the language model minus the number solved by the video model, under the configuration selected above; tasks marked with a dot have an example below.
+
+<SPExplorerFigure>
+
+**Figure 5:** Task map and side-by-side examples. The 31 examples are selected by a fixed rule: in the primary configuration (27B, layout, v2 ≥ 0.9), for each task class and outcome, the first sample in task-name order from in-domain and from out-of-domain tasks, on distinct tasks, with at most two per class and outcome (one class–outcome pair has only one sample). Changing the configuration relabels the outcomes but keeps the same samples. Videos are the raw 512² generations; their scores are computed on the versions prepared by VBVR-Pro's script.
+
+</SPExplorerFigure>
+
+</SPContrast>
+
+### 4.7 Ablations
+
+**Prompting strategies.** [Table 5](#tab-hints) compares the four prompting strategies on the earlier runs with 512² input (97 tasks, final answers only; Qwen3.6-27B served via OpenRouter). No single strategy is best across model sizes: direct answering performs best at 4B, and code at 9B and 27B. At 4B and 27B, direct answering lies within the CI of the best strategy, whereas at 9B, code attains a solve rate of 0.390, which lies outside the CI of direct answering (0.305). Because these CIs are unpaired, they bound the differences only approximately.
+
+**Inference backend.** The timed runs closely reproduce the earlier ones. With the layout prompt, Qwen3.5-4B attains a solve rate of 0.278 in the timed runs versus 0.267 in the earlier runs, with 450 of 475 per-sample verdicts in agreement, and Qwen3.5-9B attains 0.349 versus 0.335 (440 in agreement). For Qwen3.6-27B, which was previously served via OpenRouter, the solve rate is 0.459 on vLLM in BF16 versus 0.490 via OpenRouter (412 in agreement), a backend difference of 3.2 pp.
+
+**Input resolution.** Downscaling the frame from 1024² to the 512² input used by the video models substantially reduces the language models' accuracy on the 46 pixel-answer tasks, from 0.261 to 0.166 for Qwen3.5-4B, from 0.350 to 0.180 for Qwen3.5-9B, and from 0.560 to 0.389 for Qwen3.6-27B (pooled over prompting strategies), whereas the remaining 51 tasks change by at most 1.9 pp. The matched comparison therefore retains the 512² input at some cost to the language models' pixel accuracy.
+
+<div className="sp-table">
+
+<span id="tab-hints" className="sp-anchor" />**Table 5:** Solve rate by prompting strategy at the 512² input (earlier runs, 97 tasks, final answers only), with 95% CIs and the fraction of answers without a parsable answer line. Bold denotes the best strategy per model.
+
+| Model | direct | layout | states | code |
+| --- | ---: | ---: | ---: | ---: |
+| Qwen3.5-4B | **0.324** <span className="sp-ci">\[0.26, 0.40\]</span><br /><span className="sp-ci">unparsable 26%</span> | 0.272 <span className="sp-ci">\[0.21, 0.34\]</span><br /><span className="sp-ci">unparsable 26%</span> | 0.313 <span className="sp-ci">\[0.25, 0.39\]</span><br /><span className="sp-ci">unparsable 41%</span> | 0.243 <span className="sp-ci">\[0.18, 0.31\]</span><br /><span className="sp-ci">unparsable 42%</span> |
+| Qwen3.5-9B | 0.305 <span className="sp-ci">\[0.23, 0.38\]</span><br /><span className="sp-ci">unparsable 16%</span> | 0.344 <span className="sp-ci">\[0.27, 0.42\]</span><br /><span className="sp-ci">unparsable 29%</span> | 0.334 <span className="sp-ci">\[0.26, 0.41\]</span><br /><span className="sp-ci">unparsable 33%</span> | **0.390** <span className="sp-ci">\[0.32, 0.47\]</span><br /><span className="sp-ci">unparsable 21%</span> |
+| Qwen3.6-27B | 0.517 <span className="sp-ci">\[0.44, 0.60\]</span><br /><span className="sp-ci">unparsable 19%</span> | 0.499 <span className="sp-ci">\[0.42, 0.58\]</span><br /><span className="sp-ci">unparsable 24%</span> | 0.493 <span className="sp-ci">\[0.41, 0.57\]</span><br /><span className="sp-ci">unparsable 22%</span> | **0.536** <span className="sp-ci">\[0.46, 0.62\]</span><br /><span className="sp-ci">unparsable 11%</span> |
+
+</div>
+
+## 5 Limitations
+
+- **Training.** The language models are evaluated zero-shot, whereas G5 and G27 were fine-tuned on VBVR-Pro-SFT (1.25M samples over 250 tasks). Since no language model was fine-tuned on the same data, the comparison is not matched in training.
+- **Grading.** The v2 scorer grades the entire video with partial credit and also assesses the process, whereas a text answer is graded as either correct or incorrect, with the answer format specified in its prompt. The two thresholds (0.9 and 0.7) bracket this asymmetry but cannot remove it.
+- **Reproduction.** G27 was run with our initial sampling settings and scores 1.8 points below its model card overall and 3.5 points below on in-domain tasks; the 27B comparison may therefore favor the language model by a few pp on in-domain tasks ([Appendix A](#a-protocol-alignment-with-vbvr-pro)).
+- **Benchmark overlap.** Of the 235 in-domain benchmark samples (47 tasks checked), 168 have an identical counterpart in VBVR-Pro-SFT. G5 scores no higher on these duplicates (−0.007 v2 mean) than on the other samples of the same tasks, and the language models never saw them.
+- **Exploratory analyses.** The task classes were pre-specified for a fine-tuned language model, and the answer-kind split was defined after the zero-shot runs; moreover, the single-agent path class contains only 11 tasks.
+- **Decoding.** We perform a single greedy run per model and prompting strategy, and answers exceeding 2,048 tokens are counted as incorrect (25% of Qwen3.6-27B's layout answers). The 27B result shifts by 3.2 pp between two serving backends.
+- **Cost.** All runs used one GPU of the same type. Because the video models were run one video at a time, their batched cost is bounded rather than measured, and the batched text time includes waiting for the longest answers. Video FLOPs are derived from the model shapes and text FLOPs from the measured token counts ([Appendix B](#b-computation-of-forward-flops)).
+- **Pretraining.** Pretraining compute is not matched. Public data suggest that the language models received similar or greater pretraining compute, although both estimates are approximate ([Appendix C](#c-estimated-pretraining-compute)).
+
+## 6 Conclusion
+
+We compared two ways of solving visual reasoning tasks at matched model size on VBVR-Pro-Bench: rendering the solution with a fine-tuned video model, and reasoning in text with a zero-shot language model. With the layout prompt, the two approaches show no significant difference in accuracy under the strict threshold, while textual reasoning requires two to three orders of magnitude less GPU time per answer with batching and about one order of magnitude less without it. The lenient threshold favors the video models, mainly on the in-domain tasks on which they were trained. The two approaches also succeed on complementary samples: exploratory analyses suggest that, under the strict threshold, the language models are stronger when the answer is symbolic and the video models on single-agent path finding at 27B, and that under the lenient threshold, the video models are also stronger on pixel-position answers. Finally, their failure modes differ: many language-model failures stem from exceeding the decoding budget, whereas the video scores separate into clear failures and near misses.
+
+Two directions follow from these findings. The first is the matched comparison that this study does not make: fine-tuning the language model on the same VBVR-Pro training samples as the video model. The second is to combine the two approaches, letting text decide and pixels localize, and to test whether such a combination retains the strengths of both.
+
+## Contributions
+
+- [Brian Li](https://www.brianboli.com/)
+
+## References
+
+1. <span id="ref-veo3" className="sp-anchor" />Thaddäus Wiedemer, Yuxuan Li, Paul Vicol, et al. Video models are zero-shot learners and reasoners. *arXiv preprint arXiv:2509.20328*, 2025. [arxiv.org/abs/2509.20328](https://arxiv.org/abs/2509.20328)
+2. <span id="ref-vbvr" className="sp-anchor" />Maijunxian Wang, Ruisi Wang, Juyi Lin, et al. A Very Big Video Reasoning Suite. *arXiv preprint arXiv:2602.20159*, 2026. [arxiv.org/abs/2602.20159](https://arxiv.org/abs/2602.20159)
+3. <span id="ref-vbvrpro" className="sp-anchor" />Junxiang Xu, Ruisi Wang, Fanyi Pu, et al. VBVR-Pro: A Scalable and Verifiable Suite for Native Visual Reasoning. *arXiv preprint arXiv:2608.26105*, 2026. [arxiv.org/abs/2608.26105](https://arxiv.org/abs/2608.26105)
+4. <span id="ref-vrbench" className="sp-anchor" />Cheng Yang, Haiyuan Wan, Yiran Peng, et al. Reasoning via Video: The First Evaluation of Video Models' Reasoning Abilities through Maze-Solving Tasks. *arXiv preprint arXiv:2511.15065*, 2025. [arxiv.org/abs/2511.15065](https://arxiv.org/abs/2511.15065)
+5. <span id="ref-mmgr" className="sp-anchor" />Zefan Cai, Haoyi Qiu, Tianyi Ma, et al. MMGR: Multi-Modal Generative Reasoning Benchmark and Evaluation. *arXiv preprint arXiv:2512.14691*, 2025. [arxiv.org/abs/2512.14691](https://arxiv.org/abs/2512.14691)
+6. <span id="ref-viper" className="sp-anchor" />Yifan Li, Yukai Gu, Yingqian Min, et al. Beyond the Last Frame: Process-aware Evaluation for Generative Video Reasoning. *arXiv preprint arXiv:2512.24952*, 2025. [arxiv.org/abs/2512.24952](https://arxiv.org/abs/2512.24952)
+7. <span id="ref-wan" className="sp-anchor" />Team Wan, Ang Wang, Baole Ai, et al. Wan: Open and Advanced Large-Scale Video Generative Models. *arXiv preprint arXiv:2503.20314*, 2025. [arxiv.org/abs/2503.20314](https://arxiv.org/abs/2503.20314)
+8. <span id="ref-mvot" className="sp-anchor" />Chengzu Li, Wenshan Wu, Huanyu Zhang, et al. Imagine while Reasoning in Space: Multimodal Visualization-of-Thought. *arXiv preprint arXiv:2501.07542*, 2025. [arxiv.org/abs/2501.07542](https://arxiv.org/abs/2501.07542)
+9. <span id="ref-visualplanning" className="sp-anchor" />Yi Xu, Chengzu Li, Han Zhou, et al. Visual Planning: Let's Think Only with Images. *arXiv preprint arXiv:2505.11409*, 2025. [arxiv.org/abs/2505.11409](https://arxiv.org/abs/2505.11409)
+10. <span id="ref-thinkframes" className="sp-anchor" />Chengzu Li, Zanyi Wang, Jiaang Li, et al. Thinking in Frames: How Visual Context and Test-Time Scaling Empower Video Reasoning. *arXiv preprint arXiv:2601.21037*, 2026. [arxiv.org/abs/2601.21037](https://arxiv.org/abs/2601.21037)
+11. <span id="ref-visworld" className="sp-anchor" />Jialong Wu, Xiaoying Zhang, Hongyi Yuan, et al. Visual Generation Unlocks Human-Like Reasoning through Multimodal World Models. *arXiv preprint arXiv:2601.19834*, 2026. [arxiv.org/abs/2601.19834](https://arxiv.org/abs/2601.19834)
+12. <span id="ref-motif" className="sp-anchor" />Tingyu Li, Le Zhou, Siyuan Li, et al. Bridging Modal Isolation in Interleaved Thinking: Supervising Modality Transitions via Stepwise Reinforcement. *arXiv preprint arXiv:2606.12886*, 2026. [arxiv.org/abs/2606.12886](https://arxiv.org/abs/2606.12886)
+13. <span id="ref-visualopsd" className="sp-anchor" />Pengyu Li, Zhitao Gao, Lingling Zhang, et al. Visual-OPSD: Cross-Modal On-Policy Self-Distillation for Efficient Unified Multimodal Reasoning. *arXiv preprint arXiv:2606.18974*, 2026. [arxiv.org/abs/2606.18974](https://arxiv.org/abs/2606.18974)
+14. <span id="ref-arcpixels" className="sp-anchor" />Pablo Acuaviva, Aram Davtyan, Mariam Hassan, et al. Rethinking Visual Intelligence: Insights from Video Pretraining. *arXiv preprint arXiv:2510.24448*, 2025. [arxiv.org/abs/2510.24448](https://arxiv.org/abs/2510.24448)
+15. <span id="ref-barc" className="sp-anchor" />Wen-Ding Li, Keya Hu, Carter Larsen, et al. Combining Induction and Transduction for Abstract Reasoning. *arXiv preprint arXiv:2411.02272*, 2024. [arxiv.org/abs/2411.02272](https://arxiv.org/abs/2411.02272)
+16. <span id="ref-arcvideo" className="sp-anchor" />Jingqi Tong, Yurong Mou, Hangcheng Li, et al. Thinking with Video: Video Generation as a Promising Multimodal Reasoning Paradigm. *arXiv preprint arXiv:2511.04570*, 2025. [arxiv.org/abs/2511.04570](https://arxiv.org/abs/2511.04570)
+17. <span id="ref-poeworld" className="sp-anchor" />Wasu Top Piriyakulkij, Yichao Liang, Hao Tang, et al. PoE-World: Compositional World Modeling with Products of Programmatic Experts. *arXiv preprint arXiv:2505.10819*, 2025. [arxiv.org/abs/2505.10819](https://arxiv.org/abs/2505.10819)
+18. <span id="ref-gifmcts" className="sp-anchor" />Nicola Dainese, Matteo Merler, Minttu Alakuijala, et al. Generating Code World Models with Large Language Models Guided by Monte Carlo Tree Search. *arXiv preprint arXiv:2405.15383*, 2024. [arxiv.org/abs/2405.15383](https://arxiv.org/abs/2405.15383)
+19. <span id="ref-tycho" className="sp-anchor" />Jens Lehmann, Andrei Aioanei, Sahar Vahdati. Tycho: Active Abstraction with Programmatic World Models for ARC-AGI-3. *arXiv preprint arXiv:2607.28287*, 2026. [arxiv.org/abs/2607.28287](https://arxiv.org/abs/2607.28287)
+20. <span id="ref-collabvr" className="sp-anchor" />Joowon Kim, Seungho Shin, Joonhyung Park, et al. CollabVR: Collaborative Video Reasoning with Vision-Language and Video Generation Models. *arXiv preprint arXiv:2605.08735*, 2026. [arxiv.org/abs/2605.08735](https://arxiv.org/abs/2605.08735)
+
+## Appendix
+
+### A Protocol alignment with VBVR-Pro
+
+Our video evaluation follows VBVR-Pro's own protocol. G5 reproduces its model card, whereas G27 scores 1.8 points lower overall (3.5 points lower on in-domain tasks). The text evaluation is new, as neither VBVR paper reports a text baseline.
+
+<div className="sp-table">
+
+| Aspect | VBVR-Pro | This study | Match |
+| --- | --- | --- | --- |
+| Test set | VBVR-Pro-Bench: 100 tasks × 5 samples, 50 in-domain and 50 out-of-domain | The same 500 samples. Paired results use 95 tasks (47 in-domain), excluding G-21 and O-55 (pure animations with no decision to make), O-9 (metadata contradicts the frames), O-33 (ground-truth videos fail the v2 scorer), and G-161 (a video that does nothing passes the scorer) | <span className="sp-match sp-match-close">Close</span> |
+| Video models | VBVR-Pro-Wan2.2-TI2V-5B (G5) and VBVR-Pro-Wan2.2-I2V-A14B (G27): Wan2.2 fine-tuned on VBVR-Pro-SFT (1.25M samples over 250 tasks); LoRA r32, merged | The released checkpoints; we generated all 500 videos with each | <span className="sp-match sp-match-same">Same</span> |
+| Sampling | 512² × 81 frames, 50 steps, CFG scale 5; VBVR-Pro's evaluation script additionally fixes the seed, the negative prompt, and the first-frame resizing | Same resolution, steps, and guidance. G5's in-domain videos also use the evaluation script's seed, negative prompt, and resizing; G5's out-of-domain videos and all G27 videos use seed 42 and the repository's negative prompt | <span className="sp-match sp-match-close">Close</span> |
+| Scoring | VBVR-Pro's preparation (fit to a 1024² canvas, at most 5 s), followed by the v2 evaluator; the model card does not specify the evaluator revision | The same preparation script and the v2 evaluator at commit 95265d0, per sample | <span className="sp-match sp-match-same">Same</span> |
+| G5 score, overall / in-domain / out-of-domain | 0.470 / 0.641 / 0.300 (model card) | 0.474 / 0.639 / 0.308 | <span className="sp-match sp-match-same">Same</span> |
+| G27 score, overall / in-domain / out-of-domain | 0.670 / 0.808 / 0.532 (model card) | 0.652 / 0.773 / 0.531 (3.5 points lower in-domain) | <span className="sp-match sp-match-close">Close</span> |
+| Before VBVR training | Wan2.2-TI2V-5B 0.094, Wan2.2-I2V-A14B 0.182 (model card) | Not re-evaluated | <span className="sp-match sp-match-cited">Cited</span> |
+| Metric | Mean v2 score, with partial credit | Solve rate: a sample counts as solved at v2 ≥ 0.9, a threshold that every ground-truth video of the paired tasks passes; 0.7 is the lenient threshold | <span className="sp-match sp-match-diff">Different</span> |
+| Text answers | None: neither VBVR paper evaluates a text, symbolic, or code answer | Qwen3.5-4B, Qwen3.5-9B, and Qwen3.6-27B, zero-shot, given the same first frame (at 512²) and task prompt plus the answer format; graded against each sample's metadata using answer specifications frozen before grading | <span className="sp-match sp-match-added">Added</span> |
+| Training | The video models are fine-tuned on VBVR-Pro-SFT | The language models never saw VBVR data | <span className="sp-match sp-match-diff">Different</span> |
+
+</div>
+
+- VBVR (v1) uses the same 100 benchmark tasks with an earlier scorer. Its model, VBVR-Wan2.2, scores 0.517 under v2, below G27's 0.670, so the VBVR-Pro checkpoints are the stronger reference.
+- Of the 235 in-domain benchmark samples (47 tasks checked), 168 have an identical counterpart in VBVR-Pro-SFT, the training data of G5 and G27. G5 scores no higher on these duplicates than on the other samples of the same tasks (−0.007 v2 mean over 26 tasks). The language models never saw them.
+
+### B Computation of forward FLOPs
+
+We count inference FLOPs only, i.e., the forward FLOPs required to produce one answer. The video-side count follows from the model shapes under our sampler, and the language-side count from each call's measured tokens. The worked example is taken from the 1024² pilot study ([Appendix E](#e-pilot-study-at-native-1024-resolution)); at the matched 512² input, the prompt contains 256 image tokens instead of about 1,024, so the matched ratios in [Table 3](#tab-ratio) are larger.
+
+<div className="sp-fwd">
+
+<div className="sp-fwd-card sp-fwd-video">
+
+**Video model · analytic**
+
+1. Output: 512 × 512 pixels, 81 frames, matching the resolution of VBVR-Pro's RL evaluation.
+2. Latent tokens: the VAE compresses time by 4× and space by 8× (G27) or 16× (G5), followed by 2 × 2 patchification: G27, 21 × 32 × 32 = 21,504; G5, 21 × 16 × 16 = 5,376.
+3. One DiT forward pass: $\text{tokens} \times \text{layers} \times \left[2(6d^2 + 2df) + 4d \cdot \text{tokens} + 4d \cdot 512\right]$, i.e., the linear layers (self-attention QKVO, cross-attention Q and O, and FFN) plus attention over the video tokens and 512 text tokens. G27 (d 5,120, f 13,824, 40 layers; one 14B expert per step): 5.14×10<sup>14</sup> + 3.88×10<sup>14</sup> = 9.02×10<sup>14</sup>. G5 (d 3,072, f 14,336, 30 layers): 4.67×10<sup>13</sup> + 1.17×10<sup>13</sup> = 5.83×10<sup>13</sup>.
+4. Per answer: 50 denoising steps × 2 for classifier-free guidance = 100 passes, so G27 requires <b className="sp-n-video">9.02×10<sup>16</sup></b> and G5 <b className="sp-n-video">5.83×10<sup>15</sup></b>.
+5. Not counted: the umT5 text encoder and the VAE, which would only increase the video-side total.
+
+</div>
+
+<div className="sp-fwd-card sp-fwd-lang">
+
+**Language model · measured tokens**
+
+1. Tokens: each call's prompt tokens (task text plus the first frame's image tokens) and completion tokens, as reported by the provider.
+2. FLOPs per call: $\mathrm{ViT} + 2 \cdot N \cdot T + 4 \cdot d \cdot L \cdot T(T+1)/2$, where T is the number of prompt plus completion tokens, N the number of language-model parameters, and L the number of full-attention layers; Gated DeltaNet layers contribute no quadratic term. ViT: $2 \cdot N_{\mathrm{vit}} \cdot P + 4 \cdot d_{\mathrm{vit}} \cdot \mathrm{depth} \cdot P^2$ over P = 4,096 patches.
+3. Per prompting strategy: the median over its 485 calls.
+4. Example (Qwen3.6-27B, median layout call): 1,261 + 795 = 2,056 tokens, giving ViT 5.61×10<sup>12</sup> + linear 1.12×10<sup>14</sup> + attention 6.93×10<sup>11</sup> = <b className="sp-n-lang">1.19×10<sup>14</sup></b>.
+
+</div>
+
+</div>
+
+Ratio: 9.02×10<sup>16</sup> ÷ 1.19×10<sup>14</sup> = <b className="sp-n-lang">759×</b> for Qwen3.6-27B versus G27 with the layout prompt. The direct prompt yields the shortest answers (382 completion tokens at the median) and thus reaches 951×.
+
+<div className="sp-table">
+
+| Model | Inputs to the formula | Tokens per answer | FLOPs per answer |
+| --- | --- | ---: | ---: |
+| G27 · VBVR-Pro-Wan2.2-I2V-A14B | d 5,120 · f 13,824 · 40 layers · 100 passes | 21,504 latent | 9.02×10<sup>16</sup> |
+| G5 · VBVR-Pro-Wan2.2-TI2V-5B | d 3,072 · f 14,336 · 30 layers · 100 passes | 5,376 latent | 5.83×10<sup>15</sup> |
+| Qwen3.6-27B | N 27.35B + ViT 0.43B · d 5,120 · 16 full-attention layers | 1,623–2,056 per call | 9.48×10<sup>13</sup> – 1.19×10<sup>14</sup> |
+| Qwen3.5-9B | N 9.22B + ViT 0.43B · d 4,096 · 8 full-attention layers | 1,274–2,311 per call | 2.92×10<sup>13</sup> – 4.86×10<sup>13</sup> |
+| gemma-3-4b-it | N 3.88B + ViT 0.42B · d 2,560 · 34 layers counted as full attention | 515–1,133 per call | 9.57×10<sup>12</sup> – 1.45×10<sup>13</sup> |
+
+</div>
+
+- The video sampler is the one used in our G5 and G27 runs (50 steps with CFG scale 5 at 512² × 81 frames, the paper's SFT evaluation setting). VBVR-Pro's RL sampler (30 steps, no guidance, 30 passes) would reduce the video-side FLOPs by 3.3×; generating at the benchmark's native 1024 × 1024 resolution would increase them by 9.0× for G27 and 6.2× for G5.
+- These figures are FLOPs, not time. Decoding proceeds one token at a time and is memory-bound, so the wall-clock gap is smaller than the FLOPs gap; measured GPU times for both sides are reported in [Section 4.1](#41-inference-cost-per-answer).
+- For gemma-3, all 34 layers are counted as full attention; because of its sliding-window layers, this slightly overcounts its FLOPs and thus lowers its ratio.
+
+#### Per answer and per solved answer (1024² pilot study)
+
+<div className="sp-table sp-wide">
+
+| Language model | Video partner | Language FLOPs / answer | Video FLOPs / answer | Ratio | Language FLOPs / solved | Video FLOPs / solved | Ratio |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Qwen3.6-27B | G27 | 9.5e+13–1.2e+14 | 9.0e+16 | 759–951× | 1.9e+14–2.3e+14 | 1.35e+17 | 575–708× |
+| Qwen3.5-9B | G27 | 2.9e+13–4.9e+13 | 9.0e+16 | 1,857–3,088× | 8.0e+13–1.2e+14 | 1.35e+17 | 1,163–1,687× |
+| gemma-3-4b-it | G5 | 9.6e+12–1.5e+13 | 5.8e+15 | 401–610× | 1.1e+14–1.3e+14 | 1.24e+16 | 93–116× |
+
+</div>
+
+### C Estimated pretraining compute
+
+All figures are derived from public data. Qwen3.5/3.6 and Wan2.1/2.2 do not disclose their training compute, so their rows are estimates based on the assumptions listed in the table.
+
+- Language models: $C = 6 \cdot N \cdot D$, where N counts the weights involved in matrix multiplications (layers, output head, and MTP) and D the number of pretraining tokens. Qwen3.5/3.6 do not state D, so Qwen3's 36T tokens are assumed. This is not a lower bound: the blog's "significantly larger" refers to visual-text tokens, Qwen3-Next was trained on a 15T subset, and the new tokenizer packs more text into each token.
+- Video models: disclosed GPU-hours × 989 TFLOP/s (dense BF16) × the disclosed MFU for Seaweed-7B and Open-Sora 2.0; samples seen per stage × training FLOPs per sample for Movie Gen and Step-Video-T2V; tokens × FLOPs per token for Wan, whose paper states only "O(1) trillions of tokens" (interpreted as 1–5T).
+- Wan2.2 is extrapolated from Wan2.1 using its stated data growth (+65.6% images, +83.2% videos); for TI2V-5B, we assume A14B's samples at 4× fewer tokens per sample.
+- The language models likely received more pretraining compute, as they are trained on tens of trillions of tokens, whereas the video models see O(1)T tokens, each of which is more expensive because video sequences are long. Seaweed-7B, the only video model that discloses its from-scratch compute, used 9.0×10<sup>23</sup> FLOPs, so the Wan-based ranges may be underestimates.
+- VBVR fine-tuning is small by comparison: VBVR-Pro's RL run on G5 used 128 H800 GPUs for 5.1 days, about 15.7k GPU-hours.
+
+<SPStaticChart name="pretrain" wide />
+
+<span className="sp-key sp-key-lang" />Language model <span className="sp-key sp-key-video" />Video model · Lines denote estimated ranges, dots single values, and arrows lower bounds. Hover over a row to see its inputs.
+
+<div className="sp-table">
+
+| Model | Params | Pretraining FLOPs | How estimated, and inputs | Source |
+| --- | --- | ---: | --- | --- |
+| Qwen3.6-27B | 27.8B | ≈ 5.6×10<sup>24</sup> | **6 · N · D**: N 26.0B (24.35B layers + 1.27B head + 0.42B MTP) × D = 36T tokens assumed (Qwen3's stated count; Qwen3.5 / 3.6 disclose none) | Qwen3 report arXiv 2505.09388; Qwen3.5 blog |
+| Wan2.2-I2V-A14B (base of G27) | 27B (14B active) | 1.5×10<sup>23</sup> – 4.9×10<sup>24</sup> | **tokens × FLOPs per token**: Wan2.1's range × 1.75 (data growth), ×2 if both experts see every sample; not disclosed | Wan2.2 README |
+| Qwen3.5-4B (paired with G5) | 4.7B | ≈ 9.3×10<sup>23</sup> | **6 · N · D**: N 4.3B (3.57B layers + 0.64B tied head + 0.12B MTP) × D = 36T tokens assumed (Qwen3's stated count; Qwen3.5 / 3.6 disclose none) | Qwen3 report arXiv 2505.09388; Qwen3.5 blog |
+| gemma-3-4b-it | 4.3B | ≥ 9.3×10<sup>22</sup> | **6 · N · D**: N 3.9B (3.21B layers + 0.68B tied head) × 4T tokens; plus the unnamed distillation teacher | Gemma 3 report arXiv 2503.19786 |
+| Wan2.2-TI2V-5B (base of G5) | 5B | 1.3×10<sup>22</sup> – 2.2×10<sup>23</sup> | **tokens × FLOPs per token**: assumes A14B's samples: 4× fewer tokens per sample, 6N of a 5B model; not disclosed | Wan2.2 README |
+| Qwen3.5-9B | 9.7B | ≈ 1.8×10<sup>24</sup> | **6 · N · D**: N 8.2B (6.92B layers + 1.02B head + 0.24B MTP) × D = 36T tokens assumed (Qwen3's stated count; Qwen3.5 / 3.6 disclose none) | Qwen3 report arXiv 2505.09388; Qwen3.5 blog |
+| Seaweed-7B | 7B | 9.0×10<sup>23</sup> | **GPU-hours × peak × MFU**: 665,000 H100 GPU-hours, MFU 38%, from scratch | arXiv 2504.08685 |
+| Open-Sora 2.0 | 11B | ≥ 1.3×10<sup>23</sup> | **GPU-hours × peak × MFU**: 4,160 GPU-days by stage (989 TFLOP/s dense BF16 peak per GPU), MFU 38.2% / 35.8%; excludes its Flux initialization | arXiv 2503.09642 |
+| Step-Video-T2V | 30B | 6.3×10<sup>23</sup> – 1.9×10<sup>24</sup> | **samples seen × FLOPs per sample**: 3.8B images + 644M 192p clips + 27.3M 540p clips × the paper's per-sample TFLOPs; frame mix unknown (68–204) | arXiv 2502.10248 |
+| Movie Gen Video | 30B | 1.2×10<sup>24</sup> – 3.2×10<sup>24</sup> | **samples seen × FLOPs per sample**: 1.94B 256px images + 394.8M 256px clips + 73.8M 768px clips (16–32 latent frames) | arXiv 2410.13720 |
+| Wan2.1-14B | 14B | 8.4×10<sup>22</sup> – 1.3×10<sup>24</sup> | **tokens × FLOPs per token**: O(1) trillion tokens read as 1–5T; 8.4e+10–2.7e+11 FLOPs per token (short clips to 720p × 81f) | arXiv 2503.20314 |
+| Llama 3.1 8B | 8B | 7.2×10<sup>23</sup> | **6 · N · D**: 6 N D with \~15T tokens; 1.46M H100 GPU-hours disclosed | Llama 3.1 model card |
+| DeepSeek-V3 | 671B (37B active) | 3.3×10<sup>24</sup> | **6 · N · D**: 6 N D over 37B active × 14.8T tokens; 2.664M H800 GPU-hours of pretraining, FP8 | arXiv 2412.19437 |
+| Llama 3 405B | 405B | 3.8×10<sup>25</sup> | **stated by the authors**: 3.8e25 FLOPs stated for 15.6T tokens | arXiv 2407.21783 |
+
+</div>
+
+Break-even for the 27B pair: the language model's additional pretraining compute, 6.9×10<sup>23</sup> to 5.5×10<sup>24</sup> FLOPs above G27's base model, is recovered through its inference saving of 9.0×10<sup>16</sup> FLOPs per answer after **7.6×10<sup>6</sup> to 6.1×10<sup>7</sup>** answers. Both quantities are estimates, and the VBVR fine-tuning of G27 is excluded.
+
+### D VBVR-Pro v2 leaderboard with parameter counts
+
+All 29 published models, listing the parameter count stated by each source, the count obtained from the weight files where it differs by 10% or more, the additional weights used at inference, and the VBVR fine-tuning method.
+
+<div className="sp-table sp-wide">
+
+| Model | Kind | Group | Params (stated) | Counted from weights | Other weights at inference | VBVR fine-tune | Overall | ID avg | ID Abst. | ID Know. | ID Perc. | ID Spat. | ID Trans. | OOD avg | OOD Abst. | OOD Know. | OOD Perc. | OOD Spat. | OOD Trans. |
+| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| G27 · VBVR-Pro-Wan2.2-I2V-A14B | <span className="sp-fam sp-fam-video">Video</span> | Strong Baselines | 27B (14B active) | 28.6B (14.3B active) | umT5 5.3B · VAE 0.13B | LoRA r32, merged | 0.670 | 0.808 | 0.632 | 0.685 | 0.556 | 0.751 | 0.636 | 0.532 | 0.479 | 0.418 | 0.350 | 0.679 | 0.690 |
+| VBVR-Pro-SenseNova-U1 | <span className="sp-fam sp-fam-inter">Interleaved</span> | Strong Baselines | 16B (8B active) | 19.3B (10.3B active) | none (no ViT, no VAE) | full fine-tune | 0.638 | 0.811 | 0.648 | 0.695 | 0.621 | 0.770 | 0.541 | 0.464 | 0.480 | 0.328 | 0.344 | 0.558 | 0.408 |
+| SenseNova-U1-8B-MoT | <span className="sp-fam sp-fam-inter">Interleaved</span> | Open-source Models | 16B (8B active) | 17.6B (9.4B active) | none (no ViT, no VAE) | - | 0.565 | 0.533 | 0.501 | 0.395 | 0.544 | 0.355 | 0.349 | 0.597 | 0.448 | 0.495 | 0.533 | 0.717 | 0.401 |
+| Nano Banana Pro | <span className="sp-fam sp-fam-inter">Interleaved</span> | Proprietary Models | not disclosed | - | - | - | 0.564 | 0.480 | 0.518 | 0.422 | 0.512 | 0.285 | 0.174 | 0.648 | 0.553 | 0.499 | 0.657 | 0.585 | 0.220 |
+| VBVR-Pro-Wan2.1-I2V-14B | <span className="sp-fam sp-fam-video">Video</span> | Strong Baselines | 14B | 16.4B | umT5 5.3B · CLIP 0.63B · VAE 0.13B | LoRA r32, merged | 0.562 | 0.730 | 0.617 | 0.580 | 0.452 | 0.676 | 0.623 | 0.395 | 0.410 | 0.305 | 0.230 | 0.617 | 0.439 |
+| Seedream-5.0-Pro | <span className="sp-fam sp-fam-image">Image</span> | Proprietary Models | not disclosed | - | - | - | 0.557 | 0.485 | 0.518 | 0.312 | 0.509 | 0.401 | 0.217 | 0.629 | 0.507 | 0.455 | 0.661 | 0.559 | 0.202 |
+| VBVR-Wan2.2 | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 27B (14B active) | 28.6B (14.3B active) | umT5 5.3B · VAE 0.13B | LoRA r32 | 0.517 | 0.548 | 0.237 | 0.499 | 0.334 | 0.566 | 0.591 | 0.486 | 0.310 | 0.343 | 0.345 | 0.732 | 0.684 |
+| GPT-Image-2 | <span className="sp-fam sp-fam-inter">Interleaved</span> | Proprietary Models | not disclosed | - | - | - | 0.507 | 0.428 | 0.456 | 0.318 | 0.428 | 0.206 | 0.300 | 0.587 | 0.398 | 0.413 | 0.633 | 0.480 | 0.303 |
+| SeedDance 2.0 | <span className="sp-fam sp-fam-video">Video</span> | Proprietary Models | not disclosed | - | - | - | 0.499 | 0.451 | 0.338 | 0.361 | 0.353 | 0.468 | 0.308 | 0.547 | 0.369 | 0.511 | 0.478 | 0.538 | 0.532 |
+| G5 · VBVR-Pro-Wan2.2-TI2V-5B | <span className="sp-fam sp-fam-video">Video</span> | Strong Baselines | 5B | 5.0B | umT5 5.3B · VAE 0.71B | LoRA r32, merged | 0.470 | 0.641 | 0.528 | 0.556 | 0.373 | 0.565 | 0.557 | 0.300 | 0.333 | 0.127 | 0.161 | 0.505 | 0.409 |
+| VBVR-Pro-LTX2.3 | <span className="sp-fam sp-fam-video">Video</span> | Strong Baselines | 22B | 22.2B | Gemma 3 text encoder 12B · VAEs + vocoder 0.9B | LoRA r32, merged | 0.425 | 0.527 | 0.409 | 0.510 | 0.346 | 0.460 | 0.390 | 0.324 | 0.381 | 0.108 | 0.201 | 0.477 | 0.386 |
+| VBVR-SenseNova-U1 | <span className="sp-fam sp-fam-inter">Interleaved</span> | Open-source Models | 16B (8B active) | not released | none (no ViT, no VAE) | fine-tuned on VBVR, method not stated | 0.408 | 0.469 | 0.356 | 0.313 | 0.373 | 0.386 | 0.477 | 0.347 | 0.291 | 0.317 | 0.275 | 0.480 | 0.238 |
+| VBVR-Pro-FLUX.2 | <span className="sp-fam sp-fam-image">Image</span> | Strong Baselines | 32B | 32.2B | Mistral-3 text encoder 24B · VAE 0.08B | LoRA r32, merged | 0.407 | 0.484 | 0.483 | 0.323 | 0.367 | 0.449 | 0.336 | 0.330 | 0.361 | 0.272 | 0.255 | 0.454 | 0.128 |
+| Kling V3 | <span className="sp-fam sp-fam-video">Video</span> | Proprietary Models | not disclosed | - | - | - | 0.392 | 0.356 | 0.213 | 0.326 | 0.320 | 0.355 | 0.229 | 0.427 | 0.294 | 0.564 | 0.375 | 0.242 | 0.412 |
+| VBVR-Pro-ThinkMorph | <span className="sp-fam sp-fam-inter">Interleaved</span> | Strong Baselines | 14B (7B active) | 14.6B (7.6B active) | SigLIP2 ViT 0.42B (in checkpoint) · VAE 0.08B | full fine-tune | 0.373 | 0.402 | 0.403 | 0.344 | 0.238 | 0.454 | 0.184 | 0.344 | 0.367 | 0.224 | 0.238 | 0.535 | 0.257 |
+| VBVR-Pro-Qwen-Image | <span className="sp-fam sp-fam-image">Image</span> | Strong Baselines | 20B | 20.4B | Qwen2.5-VL encoder 7B · VAE 0.13B | LoRA r32, merged | 0.322 | 0.332 | 0.298 | 0.217 | 0.193 | 0.431 | 0.222 | 0.311 | 0.341 | 0.239 | 0.233 | 0.413 | 0.181 |
+| Qwen-Image-2.0 | <span className="sp-fam sp-fam-image">Image</span> | Proprietary Models | 7B (unconfirmed) | - | Qwen3-VL encoder 8B (unconfirmed) · VAE 0.34B | - | 0.313 | 0.248 | 0.269 | 0.196 | 0.225 | 0.170 | 0.132 | 0.378 | 0.341 | 0.235 | 0.391 | 0.384 | 0.080 |
+| Veo 3.1 | <span className="sp-fam sp-fam-video">Video</span> | Proprietary Models | not disclosed | - | - | - | 0.309 | 0.312 | 0.275 | 0.299 | 0.252 | 0.267 | 0.157 | 0.305 | 0.305 | 0.233 | 0.252 | 0.312 | 0.219 |
+| Wan2.2-I2V-A14B (base of G27) | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 27B (14B active) | 28.6B (14.3B active) | umT5 5.3B · VAE 0.13B | - | 0.182 | 0.157 | 0.082 | 0.131 | 0.110 | 0.161 | 0.156 | 0.207 | 0.224 | 0.139 | 0.140 | 0.195 | 0.273 |
+| VBVR-Pro-BAGEL | <span className="sp-fam sp-fam-image">Image</span> | Strong Baselines | 14B (7B active) | 14.6B (7.6B active) | SigLIP2 ViT 0.42B (in checkpoint) · VAE 0.08B | full fine-tune | 0.172 | 0.168 | 0.199 | 0.105 | 0.110 | 0.213 | 0.055 | 0.176 | 0.254 | 0.104 | 0.148 | 0.015 | 0.145 |
+| FLUX.2-dev | <span className="sp-fam sp-fam-image">Image</span> | Open-source Models | 32B | 32.2B | Mistral-3 text encoder 24B · VAE 0.08B | - | 0.157 | 0.108 | 0.088 | 0.109 | 0.072 | 0.100 | 0.066 | 0.206 | 0.197 | 0.165 | 0.184 | 0.241 | 0.077 |
+| ThinkMorph-7B | <span className="sp-fam sp-fam-inter">Interleaved</span> | Open-source Models | 14B (7B active) | 14.6B (7.6B active) | SigLIP2 ViT 0.42B (in checkpoint) · VAE 0.08B | - | 0.154 | 0.113 | 0.100 | 0.082 | 0.101 | 0.148 | 0.031 | 0.195 | 0.176 | 0.166 | 0.163 | 0.253 | 0.103 |
+| Qwen-Image-Edit | <span className="sp-fam sp-fam-image">Image</span> | Open-source Models | 20B | 20.4B | Qwen2.5-VL encoder 7B · VAE 0.13B | - | 0.134 | 0.108 | 0.092 | 0.082 | 0.100 | 0.109 | 0.056 | 0.159 | 0.176 | 0.063 | 0.141 | 0.182 | 0.082 |
+| LTX2.3-I2AV | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 22B | 22.2B | Gemma 3 text encoder 12B · VAEs + vocoder 0.9B | - | 0.112 | 0.106 | 0.062 | 0.109 | 0.070 | 0.133 | 0.055 | 0.119 | 0.161 | 0.135 | 0.086 | 0.091 | 0.050 |
+| Wan2.1-I2V-14B | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 14B | 16.4B | umT5 5.3B · CLIP 0.63B · VAE 0.13B | - | 0.100 | 0.105 | 0.052 | 0.125 | 0.091 | 0.102 | 0.052 | 0.095 | 0.112 | 0.073 | 0.071 | 0.123 | 0.044 |
+| Wan2.2-TI2V-5B (base of G5) | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 5B | 5.0B | umT5 5.3B · VAE 0.71B | - | 0.094 | 0.066 | 0.029 | 0.073 | 0.050 | 0.083 | 0.031 | 0.122 | 0.156 | 0.052 | 0.106 | 0.063 | 0.099 |
+| BAGEL-7B-MoT | <span className="sp-fam sp-fam-image">Image</span> | Open-source Models | 14B (7B active) | 14.6B (7.6B active) | SigLIP2 ViT 0.42B (in checkpoint) · VAE 0.08B | - | 0.089 | 0.066 | 0.039 | 0.085 | 0.067 | 0.046 | 0.027 | 0.111 | 0.201 | 0.031 | 0.073 | 0.028 | 0.121 |
+| CogVideoX1.5-5B-I2V | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 5B | 5.6B | T5 text encoder 4.8B · VAE 0.22B | - | 0.085 | 0.100 | 0.061 | 0.118 | 0.069 | 0.092 | 0.060 | 0.070 | 0.125 | 0.038 | 0.051 | 0.040 | 0.024 |
+| HunyuanVideo-I2V | <span className="sp-fam sp-fam-video">Video</span> | Open-source Models | 13B | 12.8B | LLaVA-Llama-3 encoder 8B · CLIP 0.12B · VAE 0.25B | - | 0.054 | 0.054 | 0.023 | 0.064 | 0.015 | 0.084 | 0.032 | 0.053 | 0.088 | 0.014 | 0.028 | 0.062 | 0.055 |
+
+</div>
+
+### E Pilot study at native 1024² resolution
+
+In this zero-shot pilot study, the language models received the native 1024² frame, which contains 4× as many pixels as the frames on which the video models condition, and their results are compared with published scores rather than on paired samples. The pilot study is therefore not a matched comparison.
+
+<SPStaticChart name="pilot" />
+
+<span className="sp-key sp-key-lang" />Language model, zero-shot, binary solve rate (one circle per prompting strategy) <span className="sp-key sp-key-video" />Video model, published v2 mean score with partial credit
+
+Each circle denotes a language model under one prompting strategy, and each square a video model's published score; the x-axis is logarithmic. Because the metrics differ (a binary solve rate versus a partial-credit mean), this comparison favors the video models.
+
+<div className="sp-table sp-wide">
+
+| Model | Kind | Params | VBVR training | Prompt | Metric | Overall | In-domain | Out-of-domain | FLOPs / answer | G5 ÷ this | G27 ÷ this | Source |
+| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| **G27 · VBVR-Pro-Wan2.2-I2V-A14B** | <span className="sp-fam sp-fam-video">Video</span> | 27B (14B active) | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.670 | 0.808 | 0.532 | 9.0×10<sup>16</sup> | – | – | published v2 |
+| VBVR-Pro-SenseNova-U1 | <span className="sp-fam sp-fam-inter">Interleaved</span> | 16B (8B active) <span className="sp-counted">· 19.3B (10.3B active) counted</span> | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.638 | 0.811 | 0.464 | – | – | – | published v2 |
+| Qwen3.6-27B | <span className="sp-fam sp-fam-lang">Language</span> | 27.8B | No | direct | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.608 <span className="sp-ci">\[0.53, 0.68\]</span> | 0.600 | 0.616 | 9.5×10<sup>13</sup> | 62× | 951× | measured here |
+| Qwen3.6-27B | <span className="sp-fam sp-fam-lang">Language</span> | 27.8B | No | layout | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.592 <span className="sp-ci">\[0.52, 0.67\]</span> | 0.579 | 0.604 | 1.2×10<sup>14</sup> | 49× | 759× | measured here |
+| Qwen3.6-27B | <span className="sp-fam sp-fam-lang">Language</span> | 27.8B | No | code | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.588 <span className="sp-ci">\[0.51, 0.66\]</span> | 0.604 | 0.571 | 1.1×10<sup>14</sup> | 51× | 792× | measured here |
+| SenseNova-U1-8B-MoT | <span className="sp-fam sp-fam-inter">Interleaved</span> | 16B (8B active) <span className="sp-counted">· 17.6B (9.4B active) counted</span> | Unclear | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.565 | 0.533 | 0.597 | – | – | – | published v2 |
+| Nano Banana Pro | <span className="sp-fam sp-fam-inter">Interleaved</span> | not disclosed | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.564 | 0.480 | 0.648 | – | – | – | published v2 |
+| VBVR-Pro-Wan2.1-I2V-14B | <span className="sp-fam sp-fam-video">Video</span> | 14B <span className="sp-counted">· 16.4B counted</span> | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.562 | 0.730 | 0.395 | – | – | – | published v2 |
+| Seedream-5.0-Pro | <span className="sp-fam sp-fam-image">Image</span> | not disclosed | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.557 | 0.485 | 0.629 | – | – | – | published v2 |
+| Qwen3.6-27B | <span className="sp-fam sp-fam-lang">Language</span> | 27.8B | No | states | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.555 <span className="sp-ci">\[0.48, 0.63\]</span> | 0.562 | 0.547 | 1.1×10<sup>14</sup> | 54× | 840× | measured here |
+| VBVR-Wan2.2 | <span className="sp-fam sp-fam-video">Video</span> | 27B (14B active) | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.517 | 0.548 | 0.486 | – | – | – | published v2 |
+| SeedDance 2.0 | <span className="sp-fam sp-fam-video">Video</span> | not disclosed | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.499 | 0.451 | 0.547 | – | – | – | published v2 |
+| Qwen3.5-9B | <span className="sp-fam sp-fam-lang">Language</span> | 9.7B | No | layout | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.470 <span className="sp-ci">\[0.39, 0.55\]</span> | 0.475 | 0.465 | 4.0×10<sup>13</sup> | 146× | 2,263× | measured here |
+| **G5 · VBVR-Pro-Wan2.2-TI2V-5B** | <span className="sp-fam sp-fam-video">Video</span> | 5B | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.470 | 0.641 | 0.300 | 5.8×10<sup>15</sup> | – | – | published v2 |
+| Qwen3.5-9B | <span className="sp-fam sp-fam-lang">Language</span> | 9.7B | No | code | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.454 <span className="sp-ci">\[0.38, 0.54\]</span> | 0.467 | 0.441 | 3.7×10<sup>13</sup> | 156× | 2,410× | measured here |
+| Qwen3.5-9B | <span className="sp-fam sp-fam-lang">Language</span> | 9.7B | No | direct | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.429 <span className="sp-ci">\[0.35, 0.51\]</span> | 0.429 | 0.429 | 2.9×10<sup>13</sup> | 200× | 3,088× | measured here |
+| Qwen3.5-9B | <span className="sp-fam sp-fam-lang">Language</span> | 9.7B | No | states | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.427 <span className="sp-ci">\[0.35, 0.51\]</span> | 0.446 | 0.408 | 4.9×10<sup>13</sup> | 120× | 1,857× | measured here |
+| VBVR-Pro-LTX2.3 | <span className="sp-fam sp-fam-video">Video</span> | 22B | Yes | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.425 | 0.527 | 0.324 | – | – | – | published v2 |
+| Kling V3 | <span className="sp-fam sp-fam-video">Video</span> | not disclosed | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.392 | 0.356 | 0.427 | – | – | – | published v2 |
+| Veo 3.1 | <span className="sp-fam sp-fam-video">Video</span> | not disclosed | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.309 | 0.312 | 0.305 | – | – | – | published v2 |
+| Wan2.2-I2V-A14B (base of G27) | <span className="sp-fam sp-fam-video">Video</span> | 27B (14B active) | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.182 | 0.157 | 0.207 | 9.0×10<sup>16</sup> | – | – | published v2 |
+| gemma-3-4b-it | <span className="sp-fam sp-fam-lang">Language</span> | 4.3B | No | layout | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.117 <span className="sp-ci">\[0.07, 0.17\]</span> | 0.125 | 0.110 | 1.5×10<sup>13</sup> | 401× | 6,202× | measured here |
+| LTX2.3-I2AV | <span className="sp-fam sp-fam-video">Video</span> | 22B | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.112 | 0.106 | 0.119 | – | – | – | published v2 |
+| gemma-3-4b-it | <span className="sp-fam sp-fam-lang">Language</span> | 4.3B | No | code | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.109 <span className="sp-ci">\[0.07, 0.16\]</span> | 0.121 | 0.098 | 1.3×10<sup>13</sup> | 442× | 6,831× | measured here |
+| gemma-3-4b-it | <span className="sp-fam sp-fam-lang">Language</span> | 4.3B | No | states | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.107 <span className="sp-ci">\[0.07, 0.16\]</span> | 0.104 | 0.110 | 1.2×10<sup>13</sup> | 493× | 7,623× | measured here |
+| Wan2.1-I2V-14B | <span className="sp-fam sp-fam-video">Video</span> | 14B <span className="sp-counted">· 16.4B counted</span> | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.100 | 0.105 | 0.095 | – | – | – | published v2 |
+| gemma-3-4b-it | <span className="sp-fam sp-fam-lang">Language</span> | 4.3B | No | direct | <span className="sp-metric sp-metric-binary">solve rate</span> | 0.095 <span className="sp-ci">\[0.05, 0.14\]</span> | 0.075 | 0.114 | 9.6×10<sup>12</sup> | 610× | 9,424× | measured here |
+| Wan2.2-TI2V-5B (base of G5) | <span className="sp-fam sp-fam-video">Video</span> | 5B | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.094 | 0.066 | 0.122 | 5.8×10<sup>15</sup> | – | – | published v2 |
+| CogVideoX1.5-5B-I2V | <span className="sp-fam sp-fam-video">Video</span> | 5B <span className="sp-counted">· 5.6B counted</span> | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.085 | 0.100 | 0.070 | – | – | – | published v2 |
+| HunyuanVideo-I2V | <span className="sp-fam sp-fam-video">Video</span> | 13B | No | – | <span className="sp-metric sp-metric-partial">mean score</span> | 0.054 | 0.054 | 0.053 | – | – | – | published v2 |
+
+</div>
+
+- Language-model rows: measured here (97 tasks × 5 samples). Other rows: published v2 scores (100 tasks), not paired per sample.
+- "G5 ÷ this" and "G27 ÷ this": the factor by which that video model requires more FLOPs per answer, at the median answer.
+
+#### By task class
+
+<div className="sp-table sp-wide">
+
+| Model | Prompt | Selection / marking (43 tasks) | Multi-object discrete (26 tasks) | Continuous (17 tasks) | Single-agent path (11 tasks) | Overall (97 tasks) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Qwen3.6-27B | layout | **0.735** | 0.485 | **0.529** | 0.382 | 0.592 |
+|   | code | 0.693 | 0.515 | 0.518 | 0.455 | 0.588 |
+|   | states | 0.684 | 0.462 | 0.459 | 0.418 | 0.555 |
+|   | direct | 0.712 | **0.569** | 0.494 | **0.473** | 0.608 |
+| Qwen3.5-9B | layout | **0.642** | **0.323** | 0.423 | 0.218 | 0.470 |
+|   | code | 0.619 | 0.308 | **0.471** | 0.127 | 0.454 |
+|   | states | 0.581 | 0.285 | 0.377 | **0.236** | 0.427 |
+|   | direct | 0.591 | 0.315 | 0.435 | 0.054 | 0.429 |
+| gemma-3-4b-it | layout | **0.140** | **0.085** | 0.188 | **0.000** | 0.117 |
+|   | code | **0.140** | 0.046 | **0.200** | **0.000** | 0.109 |
+|   | states | **0.140** | 0.061 | 0.165 | **0.000** | 0.107 |
+|   | direct | 0.130 | 0.038 | 0.153 | **0.000** | 0.095 |
+
+</div>
+
+#### OpenRouter usage
+
+- **Qwen3.6-27B**: 1,940 answered calls, 0 unresolved errors, 0 responses with thinking text, \$6.37; providers: DeepInfra 1838, Phala 89, SiliconFlow 12, Venice 1
+- **Qwen3.5-9B**: 1,940 answered calls, 0 unresolved errors, 0 responses with thinking text, \$0.49; providers: DeepInfra 1874, SiliconFlow 37, Parasail 28, Venice 1
+- **gemma-3-4b-it**: 1,940 answered calls, 0 unresolved errors, 0 responses with thinking text, \$0.14; providers: DeepInfra 1940
+
+The two Qwen runs (3,880 calls) cost \$6.86 on OpenRouter, and the gemma run cost \$0.14.
+
+### F Reproducibility
+
+All numbers in this report are generated programmatically from the per-sample records.
+
+An earlier build of this report retained G-161 in the paired set because the exclusion list referred to the task with an incorrect suffix, so 96 tasks were paired instead of 95. Since a video that does nothing passes G-161's scorer, the protocol excludes this task from every comparison. The correction changed the overall paired differences by at most 0.9 pp and the in-domain and out-of-domain differences by at most 1.4 pp; no conclusion changed.
+
+The per-sample records comprise:
+
+- the frozen answer specifications for the 97 gradable tasks;
+- the v2 scores of G5, G27 and the ground-truth videos, with the generation time of each video;
+- the raw text outputs and grades of every model and prompting strategy, from the vLLM and OpenRouter runs;
+- the measured cost per answer and the paired tables at both thresholds; and
+- the per-group differences, agreement statistics, failure categories, and the example set.
+
+---
+
+## Citations
+
+```bibtex
+@misc{li2026symbols,
+  author       = {Li, Brian},
+  title        = {Symbols or Pixels? Zero-Shot Language Reasoning versus VBVR-Trained Video Generation on Visual Reasoning Tasks},
+  year         = {2026},
+  howpublished = {LMMS Lab Notes},
+  url          = {https://www.lmms-lab.com/notes/symbols-or-pixels/}
+}
+```

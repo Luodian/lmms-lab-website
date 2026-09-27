@@ -12,6 +12,17 @@ import {
   PixelDivider,
   PixelRadar,
 } from "@/components/decorative";
+import {
+  SPAgreeFigure,
+  SPConfigBar,
+  SPContrast,
+  SPCostFigure,
+  SPExplorerFigure,
+  SPFailFigure,
+  SPGroupsFigure,
+  SPStaticChart,
+  SymbolsOrPixelsRuntime,
+} from "@/components/notes/symbols-or-pixels";
 import rehypeSlug from "rehype-slug";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeKatex from "rehype-katex";
@@ -29,6 +40,16 @@ const components = {
   PixelShape,
   PixelDivider,
   PixelRadar,
+  // "Symbols or Pixels?" note (content/notes/symbols-or-pixels.mdx)
+  SPRuntime: SymbolsOrPixelsRuntime,
+  SPCostFigure,
+  SPContrast,
+  SPConfigBar,
+  SPGroupsFigure,
+  SPAgreeFigure,
+  SPFailFigure,
+  SPExplorerFigure,
+  SPStaticChart,
   img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <ZoomableImage {...props} />
   ),

@@ -1,0 +1,817 @@
+/* =============================================================================
+   "Symbols or Pixels?" note: interactive figures, tables and static charts.
+   Site palette: text models use the site teal, video models a burnt orange;
+   panels sit on the cream page with flat teal rules, like the blog tables.
+   ============================================================================= */
+
+.sp-fig,
+.sp-config,
+.sp-static {
+	--surface: var(--foreground);
+	--ink: #1a1a1a;
+	--ink-2: #333333;
+	--muted: #4a4a4a;
+	--rule: rgba(3, 99, 154, 0.22);
+	--lang: #03639a;
+	--lang-mark: #03639a;
+	--video: #9a3412;
+	--video-mark: #c2410c;
+	--video-soft: rgba(194, 65, 12, 0.14);
+	--level: #7b7266;
+	--both: #3f3a33;
+	--neither: rgba(3, 99, 154, 0.14);
+	--wrong: #3f3a33;
+	--noans: #8a7f70;
+	--trunc: #d9b98f;
+	--div-mid: #fbf1e4;
+	--ok: #15803d;
+	--ok-soft: rgba(21, 128, 61, 0.12);
+	--bad: #b91c1c;
+	--bad-soft: rgba(185, 28, 28, 0.1);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.blog-prose .sp-fig {
+	margin-top: 1.75em;
+	margin-bottom: 1.5em;
+}
+
+/* Figures, the control bar and wide tables break out of the text column to 64rem,
+   centred on it; negative margins keep text off half-pixel offsets. */
+.blog-prose .sp-wide {
+	margin-left: calc((100% - min(64rem, 100vw - 2rem)) / 2);
+	margin-right: calc((100% - min(64rem, 100vw - 2rem)) / 2);
+}
+
+.sp-contrast > * + * {
+	margin-top: 1.25em;
+}
+
+.sp-contrast > * {
+	margin-bottom: 0;
+}
+
+.sp-fig .fig-body {
+	box-shadow: 0 0 0 2px var(--background);
+	background: var(--surface);
+	padding: 16px 18px 12px;
+}
+
+@media (max-width: 560px) {
+	.sp-fig .fig-body {
+		padding: 12px 10px 8px;
+	}
+}
+
+.sp-fig .fig-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 20px;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.blog-prose .sp-fig > figcaption {
+	text-align: left;
+	margin-top: 0.9em;
+}
+
+.sp-fig > figcaption p {
+	margin: 0;
+}
+
+.sp-loading {
+	font-family: var(--font-mono);
+	font-size: 0.875rem;
+	color: var(--muted);
+	margin: 12px 0;
+}
+
+.sp-fig .plot {
+	width: 100%;
+	min-height: 60px;
+}
+
+.sp-fig .plot svg {
+	display: block;
+	overflow: visible;
+	font-family: var(--font-sans);
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.sp-fig .controls,
+.sp-config {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 18px;
+	align-items: center;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--background);
+}
+
+.sp-fig .ctl,
+.sp-config .ctl {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sp-fig .seg,
+.sp-config .seg,
+.sp-fig .tabs {
+	display: inline-flex;
+	box-shadow: 0 0 0 2px var(--background);
+	background: var(--surface);
+}
+
+.sp-fig .seg button,
+.sp-config .seg button,
+.sp-fig .tabs button {
+	font: 500 0.875rem/1 var(--font-sans);
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--background);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 8px 12px;
+	min-height: 34px;
+	cursor: pointer;
+}
+
+.sp-fig .seg button + button,
+.sp-config .seg button + button,
+.sp-fig .tabs button + button {
+	border-left: 2px solid var(--background);
+}
+
+.sp-fig .seg button[aria-pressed="true"],
+.sp-config .seg button[aria-pressed="true"],
+.sp-fig .tabs button[aria-selected="true"] {
+	background: var(--background);
+	color: var(--foreground);
+}
+
+.sp-fig .seg button:hover:not([aria-pressed="true"]),
+.sp-config .seg button:hover:not([aria-pressed="true"]),
+.sp-fig .tabs button:hover:not([aria-selected="true"]) {
+	background: rgba(3, 99, 154, 0.1);
+}
+
+.sp-fig button:focus-visible,
+.sp-config button:focus-visible,
+.sp-fig select:focus-visible,
+.sp-fig summary:focus-visible,
+.sp-fig [tabindex]:focus-visible {
+	outline: 2px solid var(--background);
+	outline-offset: 2px;
+}
+
+.sp-config {
+	background: var(--foreground);
+	border-bottom: 2px solid var(--background);
+	padding: 10px 18px;
+	gap: 8px 16px;
+	font-size: 0.75rem;
+	letter-spacing: 0.05em;
+}
+
+.sp-config .ctl {
+	gap: 7px;
+}
+
+.sp-config .seg button {
+	padding: 7px 10px;
+	font-size: 0.8125rem;
+}
+
+.sp-config .lbl {
+	color: var(--ink);
+}
+
+@media (min-width: 720px) {
+	.sp-config {
+		position: sticky;
+		top: var(--sp-sticky-top, 0px);
+		z-index: 20;
+	}
+}
+
+.sp-fig .cfg-now {
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	color: var(--muted);
+}
+
+.sp-fig .legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	font-size: 0.875rem;
+	color: var(--ink-2);
+}
+
+.sp-fig .legend .sw {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	margin-right: 6px;
+	vertical-align: -1px;
+}
+
+.sp-fig .legend .sw.dot,
+.sp-fig .legend .sw.ring {
+	border-radius: 50%;
+}
+
+.sp-fig .legend .sw.ring {
+	background: transparent;
+	box-shadow: inset 0 0 0 2px var(--lang-mark);
+}
+
+.sp-fig .legend .sw.hatch {
+	background-image: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0, 0, 0, 0.28) 3px 4px);
+}
+
+/* ---------------------------------------------------------------- chart marks */
+
+.sp-fig .plot rect {
+	rx: 0;
+}
+
+.sp-fig .plot .grid {
+	stroke: var(--rule);
+	stroke-width: 1px;
+}
+
+.sp-fig .plot .zero {
+	stroke: var(--ink-2);
+	stroke-width: 1px;
+}
+
+.sp-fig .plot .tick {
+	fill: var(--muted);
+	font-size: 12.5px;
+	font-variant-numeric: tabular-nums;
+}
+
+.sp-fig .plot .axis-label {
+	fill: var(--muted);
+	font-size: 13px;
+}
+
+.sp-fig .plot .row-label {
+	fill: var(--ink);
+	font-size: 13.5px;
+}
+
+.sp-fig .plot .row-sub {
+	fill: var(--muted);
+	font-size: 12px;
+}
+
+.sp-fig .plot .row-val {
+	fill: var(--ink-2);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.sp-fig .plot .block {
+	fill: var(--background);
+	font-family: var(--font-mono);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.sp-fig .plot .seg-label {
+	fill: var(--surface);
+	font-size: 12px;
+	font-weight: 600;
+	pointer-events: none;
+	font-variant-numeric: tabular-nums;
+}
+
+.sp-fig .plot .seg-label.dark {
+	fill: var(--ink);
+}
+
+.sp-fig .plot .pair-line {
+	stroke: var(--muted);
+	stroke-width: 1.2px;
+	stroke-dasharray: 4 4;
+	fill: none;
+}
+
+.sp-fig .plot .pair-ratio {
+	fill: var(--ink-2);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sp-fig .plot .pt-l {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sp-fig .plot .hit {
+	fill: transparent;
+}
+
+.sp-fig .plot [tabindex]:focus {
+	outline: none;
+}
+
+.sp-fig .plot .focus-ring {
+	fill: none;
+	stroke: transparent;
+}
+
+.sp-fig .plot [tabindex]:focus-visible .focus-ring,
+.sp-fig .plot .mark:hover .focus-ring {
+	stroke: var(--ink);
+	stroke-width: 1.5px;
+}
+
+/* Phone widths: the runtime's narrow layout keeps its row geometry, so the text goes back
+   to (or below) the report page's sizes to keep labels and values from colliding. */
+@media (max-width: 560px) {
+	.sp-fig .plot .row-label { font-size: 11.5px; }
+	.sp-fig .plot .row-sub { font-size: 10.5px; }
+	.sp-fig .plot .row-val { font-size: 11px; }
+	.sp-fig .plot .tick { font-size: 11px; }
+	.sp-fig .plot .axis-label { font-size: 11px; }
+	.sp-fig .plot .block { font-size: 9.5px; letter-spacing: 0.04em; }
+	.sp-fig .plot .seg-label { font-size: 10.5px; }
+	.sp-fig .plot .pair-ratio { font-size: 11px; }
+	.sp-fig .plot .pt-l { font-size: 11px; }
+}
+
+.sp-fig .c-lang { fill: var(--lang-mark); }
+.sp-fig .c-video { fill: var(--video-mark); }
+.sp-fig .c-level { fill: var(--level); }
+.sp-fig .s-lang { stroke: var(--lang-mark); }
+.sp-fig .s-video { stroke: var(--video-mark); }
+.sp-fig .s-level { stroke: var(--level); }
+.sp-fig .c-both { fill: var(--both); }
+.sp-fig .c-neither { fill: var(--neither); }
+.sp-fig .c-wrong { fill: var(--wrong); }
+.sp-fig .c-noans { fill: var(--noans); }
+.sp-fig .c-trunc { fill: var(--trunc); }
+.sp-fig .band { fill: var(--video-soft); }
+
+.sp-fig .bar-outline {
+	fill: none;
+	stroke: var(--rule);
+	stroke-width: 1px;
+}
+
+.sp-fig .hl-row {
+	font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- task map */
+
+.sp-fig .taskmap {
+	display: grid;
+	gap: 8px;
+	margin: 6px 0 8px;
+}
+
+.sp-fig .tm-row {
+	display: grid;
+	grid-template-columns: 190px minmax(0, 1fr);
+	gap: 12px;
+	align-items: center;
+}
+
+@media (max-width: 560px) {
+	.sp-fig .tm-row {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
+}
+
+.sp-fig .tm-label {
+	font-size: 0.875rem;
+	color: var(--ink);
+}
+
+.sp-fig .tm-label small {
+	color: var(--muted);
+	font-size: 0.8125rem;
+}
+
+.sp-fig .tm-cells {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+}
+
+.sp-fig .tm-cell {
+	position: relative;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.sp-fig .tm-cell.has-ex::after {
+	content: "";
+	position: absolute;
+	inset: 7px;
+	border-radius: 50%;
+	background: var(--surface);
+	box-shadow: 0 0 0 1px var(--ink);
+}
+
+.sp-fig .tm-cell[aria-current="true"] {
+	box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+}
+
+.sp-fig .tm-info {
+	font-size: 0.875rem;
+	color: var(--ink-2);
+	min-height: 1.5em;
+	margin: 4px 0 12px;
+}
+
+/* ---------------------------------------------------------------- explorer */
+
+.sp-fig .ex-top {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	align-items: center;
+	font-size: 0.875rem;
+}
+
+.sp-fig .ex-top .lbl {
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--background);
+}
+
+.sp-fig .ex-top select {
+	flex: 1 1 280px;
+	min-width: 0;
+	max-width: 100%;
+	font: 0.875rem var(--font-sans);
+	color: var(--ink);
+	background: var(--surface);
+	border: 0;
+	border-radius: 0;
+	box-shadow: 0 0 0 2px var(--background);
+	padding: 7px 8px;
+}
+
+.sp-fig .btn {
+	font: 500 0.875rem var(--font-sans);
+	color: var(--background);
+	background: var(--surface);
+	border: 0;
+	border-radius: 0;
+	box-shadow: 0 0 0 2px var(--background);
+	padding: 7px 12px;
+	min-height: 34px;
+	cursor: pointer;
+}
+
+.sp-fig .btn:hover {
+	background: var(--background);
+	color: var(--foreground);
+}
+
+.sp-fig .ex-why {
+	font-size: 0.875rem;
+	color: var(--muted);
+	margin: 10px 0 14px;
+}
+
+.sp-fig .ex-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr) minmax(0, 1.35fr);
+	gap: 18px;
+}
+
+@media (max-width: 900px) {
+	.sp-fig .ex-grid {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.sp-fig .ex-text {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 600px) {
+	.sp-fig .ex-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.blog-prose .sp-fig .ex-col h4 {
+	margin: 0 0 8px;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--background);
+}
+
+.blog-prose .sp-fig .ex-col figure {
+	margin: 0 0 12px;
+}
+
+.blog-prose .sp-fig .ex-col img,
+.blog-prose .sp-fig .ex-col video {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	aspect-ratio: 1 / 1;
+	margin: 0;
+	border: 1px solid var(--rule);
+	background: #ffffff;
+}
+
+.blog-prose .sp-fig .ex-col figcaption {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+	margin-top: 6px;
+	font-size: 0.875rem;
+	text-align: left;
+	color: var(--ink-2);
+	opacity: 1;
+}
+
+.blog-prose .sp-fig .ex-col figcaption b {
+	color: var(--ink);
+}
+
+.sp-fig .ex-prompt {
+	font-size: 0.9375rem;
+	line-height: 1.5;
+	color: var(--ink-2);
+	margin: 0 0 8px;
+}
+
+.sp-fig .kv {
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	color: var(--muted);
+	margin: 10px 0 4px;
+}
+
+.blog-prose .sp-fig pre.mono {
+	margin: 0 0 8px;
+	padding: 8px 10px;
+	border-radius: 0;
+	font-size: 0.8125rem;
+	line-height: 1.55;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.blog-prose .sp-fig pre.trace {
+	max-height: 26em;
+	overflow: auto;
+}
+
+.sp-fig .chip {
+	display: inline-block;
+	padding: 1px 8px;
+	font: 600 0.8125rem/1.5 var(--font-mono);
+	white-space: nowrap;
+}
+
+.sp-fig .chip.ok {
+	color: var(--ok);
+	background: var(--ok-soft);
+}
+
+.sp-fig .chip.bad {
+	color: var(--bad);
+	background: var(--bad-soft);
+}
+
+.sp-fig .tabs {
+	margin-bottom: 8px;
+}
+
+.sp-fig details.ex-more summary {
+	cursor: pointer;
+	font-size: 0.875rem;
+	color: var(--background);
+	margin: 8px 0 6px;
+}
+
+/* ---------------------------------------------------------------- tooltip (on <body>) */
+
+.sp-tip {
+	position: fixed;
+	z-index: 700;
+	max-width: 340px;
+	padding: 8px 11px;
+	background: #03639a;
+	color: #fed7aa;
+	font: 0.84375rem/1.45 var(--font-sans);
+	pointer-events: none;
+	box-shadow: 0 0 0 1px rgba(254, 215, 170, 0.35);
+}
+
+.sp-tip[hidden] {
+	display: none;
+}
+
+.sp-tip b {
+	font-weight: 700;
+	color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- static appendix charts */
+
+.sp-static {
+	overflow-x: auto;
+	margin: 1.25em 0 0.5em;
+}
+
+.sp-static svg.chart {
+	display: block;
+	width: 100%;
+	min-width: 600px;
+	height: auto;
+	font-family: var(--font-sans);
+}
+
+.sp-static svg.range-chart {
+	min-width: 720px;
+}
+
+.sp-static .grid { stroke: var(--rule); stroke-width: 1px; }
+.sp-static .axis { stroke: var(--muted); stroke-width: 1px; }
+.sp-static .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sp-static .axis-label { fill: var(--muted); font-size: 12px; }
+.sp-static .pt-lang { fill: var(--lang-mark); stroke: var(--surface); stroke-width: 1.5px; }
+.sp-static .pt-video { fill: var(--video-mark); stroke: var(--surface); stroke-width: 1.5px; }
+.sp-static .pt-label { font-size: 11.5px; font-weight: 600; }
+.sp-static .pt-label-lang { fill: var(--lang); }
+.sp-static .pt-label-video { fill: var(--video); }
+.sp-static .grp { fill: var(--background); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sp-static .row-l { fill: var(--ink); font-size: 12px; }
+.sp-static .row-v { fill: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.sp-static .span { stroke-width: 6px; stroke-linecap: butt; }
+.sp-static .floor { stroke-width: 2px; }
+.sp-static circle { stroke: var(--surface); stroke-width: 2px; }
+.sp-static .mk-lang .span, .sp-static .mk-lang .floor { stroke: var(--lang-mark); }
+.sp-static .mk-video .span, .sp-static .mk-video .floor { stroke: var(--video-mark); }
+.sp-static .mk-lang circle, .sp-static .ah-lang { fill: var(--lang-mark); }
+.sp-static .mk-video circle, .sp-static .ah-video { fill: var(--video-mark); }
+.sp-static .hit { fill: transparent; }
+
+/* ---------------------------------------------------------------- inline marks in prose and tables */
+
+.sp-anchor {
+	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 16px);
+}
+
+.blog-prose:has(.sp-fig) :is(h2, h3, h4) {
+	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 16px);
+}
+
+.sp-contrast :is(h3, h4) {
+	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 80px);
+}
+
+.sp-n-lang,
+.sp-n-video,
+.sp-n-level {
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.sp-n-lang { color: #03639a; }
+.sp-n-video { color: #9a3412; }
+.sp-n-level { color: inherit; }
+
+.sp-ci {
+	color: #5a5a5a;
+	font-size: 0.875em;
+	white-space: nowrap;
+}
+
+.sp-counted {
+	color: #5a5a5a;
+	font-size: 0.875em;
+}
+
+.sp-fam,
+.sp-metric,
+.sp-match {
+	display: inline-block;
+	padding: 0 6px;
+	font: 600 0.75rem/1.7 var(--font-mono);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.sp-fam-lang, .sp-metric-binary, .sp-match-added { color: #03639a; }
+.sp-fam-video, .sp-metric-partial { color: #9a3412; }
+.sp-fam-image, .sp-fam-inter, .sp-metric, .sp-match-close, .sp-match-cited { color: #4a4a4a; }
+.sp-match-same { color: #15803d; }
+.sp-match-diff { color: #b91c1c; }
+
+.sp-key {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin-right: 5px;
+	vertical-align: middle;
+}
+
+.sp-key-lang {
+	border-radius: 50%;
+	background: #03639a;
+}
+
+.sp-key-video {
+	margin-left: 12px;
+	background: #c2410c;
+}
+
+.sp-fwd {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
+@media (max-width: 760px) {
+	.sp-fwd {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.sp-fwd-card {
+	min-width: 0;
+	overflow-x: auto;
+	box-shadow: inset 0 0 0 2px var(--background);
+	padding: 12px 16px;
+	font-size: 1rem;
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.sp-table > * + * {
+	margin-top: 0.9em;
+}
+
+.blog-prose .sp-table .table-wrapper {
+	margin: 0.9em 0 0;
+}
+
+.blog-prose .sp-table table {
+	width: 100%;
+	min-width: 0;
+}
+
+.blog-prose .sp-table th,
+.blog-prose .sp-table td {
+	padding: 0.5rem 0.75rem;
+	white-space: normal;
+}
+
+.blog-prose .sp-table th {
+	vertical-align: bottom;
+	line-height: 1.35;
+}
+
+.blog-prose .sp-table td {
+	vertical-align: top;
+	line-height: 1.5;
+}
+
+.sp-fwd-card > * + * {
+	margin-top: 0.6em;
+}
+
+.sp-fwd-video strong { color: #9a3412; }
