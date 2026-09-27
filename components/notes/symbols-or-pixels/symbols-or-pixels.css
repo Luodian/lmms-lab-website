@@ -686,6 +686,52 @@
 .sp-static .mk-video circle, .sp-static .ah-video { fill: var(--video-mark); }
 .sp-static .hit { fill: transparent; }
 
+/* ---------------------------------------------------------------- numbered notes (small type) */
+
+.sp-note-ref {
+	font-size: 0.7em;
+	line-height: 0;
+	margin-left: 0.1em;
+}
+
+.blog-prose .sp-note-ref a {
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.blog-prose .sp-notes {
+	padding-top: 0.6em;
+	border-top: 1px solid rgba(3, 99, 154, 0.35);
+	max-width: 44rem;
+}
+
+.sp-notes > * + * {
+	margin-top: 0.35em;
+}
+
+.blog-prose .sp-note {
+	margin: 0;
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	color: #4a4a4a;
+}
+
+.blog-prose .sp-note .sp-note-num {
+	margin-right: 0.5em;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	text-decoration: none;
+}
+
+.sp-note:target {
+	background: rgba(3, 99, 154, 0.08);
+}
+
+.sp-note,
+.sp-note-ref a {
+	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 24px);
+}
+
 /* ---------------------------------------------------------------- inline marks in prose and tables */
 
 .sp-anchor {
@@ -714,8 +760,14 @@
 
 .sp-ci {
 	color: #5a5a5a;
-	font-size: 0.875em;
+	font-size: 0.75em;
 	white-space: nowrap;
+}
+
+/* 95% CIs in tables sit on their own line under the value, one size down. */
+.sp-range {
+	display: block;
+	line-height: 1.4;
 }
 
 .sp-counted {

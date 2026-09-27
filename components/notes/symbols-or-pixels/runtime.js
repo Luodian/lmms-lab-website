@@ -7,7 +7,7 @@ export function mount(D, base) {
   var SIG = { signal: ac.signal };
   var NS = 'http://www.w3.org/2000/svg';
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var state = { pair: D.primary.pair, hint: D.primary.hint, cut: D.primary.cut, time: 'batched', costCut: '0.9', ex: 0, exModel: null, task: null };
+  var state = { pair: D.primary.pair, hint: D.primary.hint, cut: D.primary.cut, time: 'flops', costCut: '0.9', ex: 0, exModel: null, task: null };
   var PAIR = { '5B': { video: 'G5', text: 'S4', name: 'Qwen3.5-4B' }, '27B': { video: 'G27', text: 'S27', name: 'Qwen3.6-27B' } };
   var CELLS = [['both', 'Both solve', 'c-both'], ['text_only', 'Text only', 'c-lang'], ['video_only', 'Video only', 'c-video'], ['neither', 'Neither', 'c-neither']];
   var KIND = { correct: ['Correct', 'ok'], wrong: ['Incorrect', 'bad'], no_answer: ['Unparsable', 'bad'], truncated: ['Truncated at 2,048 tokens', 'bad'] };

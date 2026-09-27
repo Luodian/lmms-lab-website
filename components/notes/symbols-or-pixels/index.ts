@@ -7,5 +7,8 @@ export {
 	SPExplorerFigure,
 	SPFailFigure,
 	SPGroupsFigure,
+	SPNote,
+	SPNotes,
+	SPRef,
 	SPStaticChart,
 } from "./figures";

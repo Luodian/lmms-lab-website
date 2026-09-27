@@ -20,6 +20,9 @@ import {
   SPExplorerFigure,
   SPFailFigure,
   SPGroupsFigure,
+  SPNote,
+  SPNotes,
+  SPRef,
   SPStaticChart,
   SymbolsOrPixelsRuntime,
 } from "@/components/notes/symbols-or-pixels";
@@ -50,6 +53,9 @@ const components = {
   SPFailFigure,
   SPExplorerFigure,
   SPStaticChart,
+  SPRef,
+  SPNotes,
+  SPNote,
   img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <ZoomableImage {...props} />
   ),

@@ -36,6 +36,12 @@ export function SymbolsOrPixelsRuntime() {
 		setStickyTop();
 		window.addEventListener("resize", setStickyTop);
 
+		// Hovering a note marker previews the note text.
+		document.querySelectorAll<HTMLAnchorElement>(".sp-note-ref a").forEach((a) => {
+			const note = document.getElementById(a.hash.slice(1));
+			if (note) a.title = (note.textContent || "").replace(/^\s*\d+/, "").trim();
+		});
+
 		loadData()
 			.then((data) => {
 				if (!cancelled) unmount = mount(data, BASE);

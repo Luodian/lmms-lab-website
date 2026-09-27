@@ -43,19 +43,6 @@ export function SPCostFigure({ children }: { children: ReactNode }) {
 				<div className="fig-head">
 					<div className="controls">
 						<span className="ctl">
-							GPU time
-							<Seg
-								k="time"
-								label="Cost measure"
-								pressed="batched"
-								options={[
-									["batched", "Batched"],
-									["b1", "Batch size 1"],
-									["flops", "Forward FLOPs"],
-								]}
-							/>
-						</span>
-						<span className="ctl">
 							Video threshold
 							<Seg k="costCut" label="Video threshold" pressed="0.9" options={THRESHOLDS} />
 						</span>
@@ -334,6 +321,37 @@ export function SPExplorerFigure({ children }: { children: ReactNode }) {
 			</div>
 			<Caption>{children}</Caption>
 		</figure>
+	);
+}
+
+// Numbered notes: <SPRef n={1} /> marks the text; <SPNotes><SPNote n={1}>…</SPNote></SPNotes>
+// holds the note in small type at the end of the subsection.
+export function SPRef({ n }: { n: number }) {
+	return (
+		<sup className="sp-note-ref">
+			<a href={`#note-${n}`} id={`note-ref-${n}`}>
+				{n}
+			</a>
+		</sup>
+	);
+}
+
+export function SPNotes({ children }: { children: ReactNode }) {
+	return (
+		<aside className="sp-notes" aria-label="Notes">
+			{children}
+		</aside>
+	);
+}
+
+export function SPNote({ n, children }: { n: number; children: ReactNode }) {
+	return (
+		<p className="sp-note" id={`note-${n}`}>
+			<a className="sp-note-num" href={`#note-ref-${n}`} aria-label={`Back to the text of note ${n}`}>
+				{n}
+			</a>
+			{children}
+		</p>
 	);
 }
 
