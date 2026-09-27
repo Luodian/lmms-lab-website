@@ -49,25 +49,25 @@ Prior work suggests that representation changes the tasks a model can solve. Vis
 
 ### 3.1 Benchmark and grading
 
-VBVR-Pro-Bench has 100 tasks with five samples each, split evenly between tasks seen and unseen during VBVR-Pro training. We retain 95 tasks (475 samples) for which both answer types can be graded meaningfully. Three tasks lack a consistent final answer; two more fail a ground-truth-video or trivial-video scorer check.<SPRef n={1} /> For the remaining tasks, we froze the text answer formats and comparators before grading and checked them against known answers.<SPRef n={2} />
+VBVR-Pro-Bench has 100 tasks with five samples each, split evenly between tasks seen and unseen during VBVR-Pro training. We retain 95 tasks (475 samples) for which both answer types can be graded meaningfully. Three tasks lack a consistent final answer; two more fail a ground-truth-video or trivial-video scorer check.<SPRef n="1" /> For the remaining tasks, we froze the text answer formats and comparators before grading and checked them against known answers.<SPRef n="2" />
 
-The video models receive a score from 0 to 1 for the whole trajectory.<SPRef n={3} /> We count scores of at least 0.9 as strict successes and also report a 0.7 threshold that includes near misses. Text answers are graded as correct or incorrect against the final answer. All solve rates are task-weighted. Confidence intervals resample tasks;<SPRef n={4} /> differences are paired by sample and reported as text minus video in percentage points. Every reported number is computed from per-sample records: the frozen answer specifications, the video v2 scores, the raw text answers and grades, and the outcome categories used in the figures.
+The video models receive a score from 0 to 1 for the whole trajectory.<SPRef n="3" /> We count scores of at least 0.9 as strict successes and also report a 0.7 threshold that includes near misses. Text answers are graded as correct or incorrect against the final answer. All solve rates are task-weighted. Confidence intervals resample tasks;<SPRef n="4" /> differences are paired by sample and reported as text minus video in percentage points. Every reported number is computed from per-sample records: the frozen answer specifications, the video v2 scores, the raw text answers and grades, and the outcome categories used in the figures.
 
 <SPNotes>
 
-<SPNote n={1}>The three are G-21 and O-55, which are pure animations with no decision to make, and O-9, whose metadata contradicts the frames. The two are O-33, whose ground-truth videos do not all reach a score of 0.9, and G-161, in which a video that does nothing receives full marks.</SPNote>
+<SPNote n="1">The three are G-21 and O-55, which are pure animations with no decision to make, and O-9, whose metadata contradicts the frames. The two are O-33, whose ground-truth videos do not all reach a score of 0.9, and G-161, in which a video that does nothing receives full marks.</SPNote>
 
-<SPNote n={2}>For every sample, each specification grades the ground-truth answer as correct and a plausible incorrect answer as incorrect.</SPNote>
+<SPNote n="2">For every sample, each specification grades the ground-truth answer as correct and a plausible incorrect answer as incorrect.</SPNote>
 
-<SPNote n={3}>Scores come from the VBVR-Pro-Bench v2 evaluator at commit 95265d0, with task-specific scorers only. It reads the frames with OpenCV, using color masks, contours, and object tracking.</SPNote>
+<SPNote n="3">Scores come from the VBVR-Pro-Bench v2 evaluator at commit 95265d0, with task-specific scorers only. It reads the frames with OpenCV, using color masks, contours, and object tracking.</SPNote>
 
-<SPNote n={4}>The 95% intervals come from 4,000 task-bootstrap resamples with seed 0.</SPNote>
+<SPNote n="4">The 95% intervals come from 4,000 task-bootstrap resamples with seed 0.</SPNote>
 
 </SPNotes>
 
 ### 3.2 Models and inference
 
-G5 and G27 are the released VBVR-Pro Wan2.2 checkpoints, fine-tuned on VBVR-Pro-SFT. We pair them with zero-shot Qwen3.5-4B and Qwen3.6-27B, and include Qwen3.5-9B as a reference ([Table 1](#tab-models)). Each text model sees the task prompt and the first frame at the 512² resolution used for video generation. The primary text prompt first describes a structured scene layout, then answers; direct answering is a second condition. Each video model generates an 81-frame solution.<SPRef n={5} /> Text decoding is greedy, with a 2,048-token answer limit.<SPRef n={6} />
+G5 and G27 are the released VBVR-Pro Wan2.2 checkpoints, fine-tuned on VBVR-Pro-SFT. We pair them with zero-shot Qwen3.5-4B and Qwen3.6-27B, and include Qwen3.5-9B as a reference ([Table 1](#tab-models)). Each text model sees the task prompt and the first frame at the 512² resolution used for video generation. The primary text prompt first describes a structured scene layout, then answers; direct answering is a second condition. Each video model generates an 81-frame solution.<SPRef n="5" /> Text decoding is greedy, with a 2,048-token answer limit.<SPRef n="6" />
 
 Our video evaluation follows the published VBVR-Pro protocol ([Table 2](#tab-align)). G5 reproduces its published mean v2 score, and G27 scores slightly below its model card. These mean scores check the reproduction only; the paired results use solve rates on the 95-task set.
 
@@ -87,19 +87,19 @@ Our video evaluation follows the published VBVR-Pro protocol ([Table 2](#tab-ali
 
 <SPNotes>
 
-<SPNote n={5}>Videos are generated at 512×512 with 50 denoising steps and a classifier-free guidance scale of 5. Before scoring, VBVR-Pro's preparation script resizes each video to the 1024 canvas and cuts it to at most 5 seconds.</SPNote>
+<SPNote n="5">Videos are generated at 512×512 with 50 denoising steps and a classifier-free guidance scale of 5. Before scoring, VBVR-Pro's preparation script resizes each video to the 1024 canvas and cuts it to at most 5 seconds.</SPNote>
 
-<SPNote n={6}>vLLM 0.29.0 in BF16 at temperature 0, with thinking mode disabled. An earlier API-served 27B layout run reached a 49.0% solve rate, versus 45.9% for the local run used throughout.</SPNote>
+<SPNote n="6">vLLM 0.29.0 in BF16 at temperature 0, with thinking mode disabled. An earlier API-served 27B layout run reached a 49.0% solve rate, versus 45.9% for the local run used throughout.</SPNote>
 
 </SPNotes>
 
 ### 3.3 Forward FLOPs
 
-We measure inference cost as the forward FLOPs needed to produce one answer, estimated from model shapes and the measured text token counts.<SPRef n={7} /> For video, the DiT processes 5,376 latent tokens at 5B or 21,504 at 27B for 50 denoising steps with two passes per step. For text, the estimate includes the vision encoder and the language-model passes over prompt and generated tokens. It omits the video text encoder and VAE, so the video cost is conservative. FLOPs count arithmetic, not time: text decoding is memory-bound, so the wall-clock gap on real hardware is smaller than the FLOPs gap.
+We measure inference cost as the forward FLOPs needed to produce one answer, estimated from model shapes and the measured text token counts.<SPRef n="7" /> For video, the DiT processes 5,376 latent tokens at 5B or 21,504 at 27B for 50 denoising steps with two passes per step. For text, the estimate includes the vision encoder and the language-model passes over prompt and generated tokens. It omits the video text encoder and VAE, so the video cost is conservative. FLOPs count arithmetic, not time: text decoding is memory-bound, so the wall-clock gap on real hardware is smaller than the FLOPs gap.
 
 <SPNotes>
 
-<SPNote n={7}>One DiT pass costs $\text{tokens} \times \text{layers} \times \left[2(6d^2 + 2df) + 4d \cdot \text{tokens} + 4d \cdot 512\right]$, covering the linear layers and attention over the video tokens and 512 text tokens. A text call costs $\mathrm{ViT} + 2 \cdot N \cdot T + 4 \cdot d \cdot L \cdot T(T+1)/2$ over its $T$ prompt and completion tokens, where Gated DeltaNet layers contribute no quadratic term.</SPNote>
+<SPNote n="7">One DiT pass costs $\text{tokens} \times \text{layers} \times \left[2(6d^2 + 2df) + 4d \cdot \text{tokens} + 4d \cdot 512\right]$, covering the linear layers and attention over the video tokens and 512 text tokens. A text call costs $\mathrm{ViT} + 2 \cdot N \cdot T + 4 \cdot d \cdot L \cdot T(T+1)/2$ over its $T$ prompt and completion tokens, where Gated DeltaNet layers contribute no quadratic term.</SPNote>
 
 </SPNotes>
 

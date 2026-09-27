@@ -324,9 +324,10 @@ export function SPExplorerFigure({ children }: { children: ReactNode }) {
 	);
 }
 
-// Numbered notes: <SPRef n={1} /> marks the text; <SPNotes><SPNote n={1}>…</SPNote></SPNotes>
-// holds the note in small type at the end of the subsection.
-export function SPRef({ n }: { n: number }) {
+// Numbered notes: <SPRef n="1" /> marks the text; <SPNotes><SPNote n="1">…</SPNote></SPNotes>
+// holds the note in small type at the end of the subsection. n is a string attribute because
+// next-mdx-remote blocks JavaScript expressions such as n={1} in MDX by default.
+export function SPRef({ n }: { n: number | string }) {
 	return (
 		<sup className="sp-note-ref">
 			<a href={`#note-${n}`} id={`note-ref-${n}`}>
@@ -344,7 +345,7 @@ export function SPNotes({ children }: { children: ReactNode }) {
 	);
 }
 
-export function SPNote({ n, children }: { n: number; children: ReactNode }) {
+export function SPNote({ n, children }: { n: number | string; children: ReactNode }) {
 	return (
 		<p className="sp-note" id={`note-${n}`}>
 			<a className="sp-note-num" href={`#note-ref-${n}`} aria-label={`Back to the text of note ${n}`}>
