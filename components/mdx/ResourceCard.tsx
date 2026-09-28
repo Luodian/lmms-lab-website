@@ -17,6 +17,10 @@ interface ResourceCardProps {
   description?: string;
   resources?: Resource[];
   groups?: ResourceGroup[];
+  // One resource from string props, for MDX sources where array expressions are stripped.
+  type?: Resource["type"];
+  label?: string;
+  url?: string;
 }
 
 const typeIcons: Record<string, string> = {
@@ -28,7 +32,8 @@ const typeIcons: Record<string, string> = {
   link: "[Link]",
 };
 
-export function ResourceCard({ title, description, resources, groups }: ResourceCardProps) {
+export function ResourceCard({ title, description, resources, groups, type, label, url }: ResourceCardProps) {
+  const items = resources ?? (url ? [{ type: type ?? "link", title: label ?? url, url }] : undefined);
   return (
     <div
       style={{
@@ -38,7 +43,7 @@ export function ResourceCard({ title, description, resources, groups }: Resource
       }}
     >
       {title && (
-        <h3 style={{ marginBottom: "var(--space-sm)", fontSize: "1.25rem" }}>{title}</h3>
+        <h3 style={{ marginTop: 0, marginBottom: "var(--space-sm)", fontSize: "1.25rem" }}>{title}</h3>
       )}
       {description && (
         <p style={{ marginBottom: "var(--space-md)", opacity: 0.8, fontSize: "0.875rem" }}>
@@ -46,9 +51,9 @@ export function ResourceCard({ title, description, resources, groups }: Resource
         </p>
       )}
 
-      {resources && (
+      {items && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-sm)" }}>
-          {resources.map((resource, i) => (
+          {items.map((resource, i) => (
             <a
               key={i}
               href={resource.url}
