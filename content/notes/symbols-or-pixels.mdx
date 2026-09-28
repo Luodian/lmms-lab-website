@@ -14,9 +14,9 @@ We compare two ways of answering the same visual reasoning problem: a video mode
 - **Inference cost.** With the layout prompt, a text answer takes **480× fewer forward FLOPs at 5B and 1,026× fewer at 27B** than a generated video.
 - **Solve rate.** At the strict video threshold (v2 ≥ 0.9), the paired difference (text − video) is +5.5 percentage points (pp; 95% CI \[−4.0, +14.9\]) at 5B and +4.8 pp \[−6.5, +16.4\] at 27B; neither CI excludes zero. At the lenient threshold (v2 ≥ 0.7), which also counts near-miss videos as solved, the differences are −9.7 pp \[−20.2, +0.6\] and −13.3 pp \[−24.6, −1.9\]; only the 27B CI excludes zero.
 - **Per-sample outcomes.** At 27B and v2 ≥ 0.9, only 89 of 475 samples are solved by both methods. An oracle that selects the successful output for each sample would solve 68.2%, compared with 45.9% for text alone.
-- **Answer type (exploratory).** At v2 ≥ 0.9, text has higher solve rates on non-pixel answers at both scales, and video on single-agent paths at 27B.
+- **Answer type (exploratory).** At v2 ≥ 0.9, text has higher solve rates on non-pixel answers at both scales, and video on single-agent paths at 27B; on the text side these are decision-level results (see below).
 
-The comparison is between systems as released and does not isolate the effect of representation. The video models were fine-tuned on VBVR-Pro-SFT and are scored on the whole trajectory (with partial credit); the language models are zero-shot and graded on the final answer only.
+The comparison is between systems as released and does not isolate the effect of representation. The video models were fine-tuned on VBVR-Pro-SFT, and the language models are zero-shot. The two sides are also graded on different things: a text answer only states the decision, while the v2 score also checks how the video renders it (in 92 of the 95 tasks, that the rest of the scene stays unchanged). A text success therefore assumes that rendering the answer would always succeed.
 
 **Code and results:** [EvolvingLMMs-Lab/symbols-or-pixels](https://github.com/EvolvingLMMs-Lab/symbols-or-pixels) (inference, grading, and plotting scripts, with per-sample results).
 
@@ -37,7 +37,7 @@ We ask two questions on the same benchmark samples:
 
 We pair the released 5B and 27B VBVR-Pro video checkpoints with zero-shot Qwen models of similar size. Both receive the same first frame and task prompt. The video model generates an 81-frame solution, and the language model writes a final answer. The two methods also differ in training data and in grading (§3, §5).
 
-Text answers take two to three orders of magnitude fewer forward FLOPs (480× at 5B and 1,026× at 27B). Whether they are also as accurate depends on how a video success is defined. A text answer can name the correct object or path without drawing it, while a video can move toward the goal state without reaching it; the threshold on the trajectory score decides how the second case is counted. We therefore report results at two thresholds, together with per-sample outcomes.
+Text answers take two to three orders of magnitude fewer forward FLOPs (480× at 5B and 1,026× at 27B). Their accuracy is harder to compare. A text answer can name the correct object or path without drawing it, whereas the benchmark's scorer also checks the drawing; a video, in turn, can move toward the goal state without reaching it and still receive partial credit. We therefore report results at two thresholds, together with per-sample outcomes, and treat the text results as decision-level (§5).
 
 ## 2 Related work
 
@@ -66,7 +66,7 @@ Text answers take two to three orders of magnitude fewer forward FLOPs (480× at
 VBVR-Pro-Bench has 100 tasks with five samples each: 50 in-domain tasks (seen during VBVR-Pro training) and 50 out-of-domain tasks. We keep 95 tasks (475 samples; 47 in-domain and 48 out-of-domain) on which both output types can be graded. Three tasks have no consistent final answer, and two fail a scorer check on ground-truth or trivial videos.<SPRef n="1" /> For each retained task, we fixed the text answer format and the comparison rule before grading, and checked both against known answers.<SPRef n="2" />
 
 - **Video grading.** The v2 scorer assigns each generated video a single score in \[0, 1\] for the whole trajectory.<SPRef n="3" /> A video counts as solved at v2 ≥ 0.9 (strict threshold). We also report v2 ≥ 0.7 (lenient threshold), which additionally counts near misses.
-- **Text grading.** The final answer is graded as correct or incorrect, so text results do not depend on the video threshold.
+- **Text grading.** The final answer is graded as correct or incorrect, so text results do not depend on the video threshold. The language model is not asked to render its answer, so a text success measures the decision only (§5).
 - **Statistics.** Solve rates are task-weighted. Differences are paired by sample and reported as text − video in percentage points (pp). 95% confidence intervals (CIs) come from a task-level bootstrap,<SPRef n="4" /> and we call a difference significant when its CI excludes zero.
 
 <SPNotes>
@@ -150,7 +150,7 @@ Normalized by accuracy, text needs 597× (5B) and 1,147× (27B) fewer FLOPs per 
 
 ### 4.2 Solve rates depend on the threshold and the prompt
 
-At v2 ≥ 0.9 with the layout prompt, text solves 27.8% of samples at 5B (video: 22.3%) and 45.9% at 27B (video: 41.0%). The paired differences, +5.5 pp \[−4.0, +14.9\] and +4.8 pp \[−6.5, +16.4\], are not significant ([Table 3](#tab-main)).
+At v2 ≥ 0.9 with the layout prompt, text solves 27.8% of samples at 5B (video: 22.3%) and 45.9% at 27B (video: 41.0%). The paired differences, +5.5 pp \[−4.0, +14.9\] and +4.8 pp \[−6.5, +16.4\], are not significant ([Table 3](#tab-main)). The two rates measure different things: the text grade checks only the decision, while the v2 score also depends on how the video renders it (§5).
 
 At v2 ≥ 0.7, near-miss videos also count as solved. The differences become −9.7 pp \[−20.2, +0.6\] at 5B and −13.3 pp \[−24.6, −1.9\] at 27B, and only the 27B difference is significant. At 27B, it comes from in-domain tasks, which the video model saw during fine-tuning: −27.2 pp \[−42.1, −12.8\] in-domain versus +0.4 pp \[−17.1, +17.5\] out-of-domain. The lenient threshold credits trajectories that approach the goal state without reaching it; a text answer has no partial credit.
 
@@ -160,7 +160,7 @@ The layout prompt is also not the strongest text condition. With the direct prom
 
 <SPConfigBar />
 
-### 4.3 Text is stronger on non-pixel answers, video on paths
+### 4.3 Results by answer type
 
 The aggregate rates combine answer types on which the two methods differ ([Figure 2](#fig-groups)). With the layout prompt:
 
@@ -168,10 +168,11 @@ The aggregate rates combine answer types on which the two methods differ ([Figur
 - **Single-agent paths:** at 27B and v2 ≥ 0.9, the difference is −29.1 pp \[−49.1, −10.9\].
 - **Pixel-position answers:** at 27B, the difference is −10.7 pp \[−27.1, +5.8\] at v2 ≥ 0.9 and −26.7 pp \[−42.2, −9.8\] at v2 ≥ 0.7; only the second is significant.
 
-These splits are exploratory (§5), and two confounds remain:
+These splits are exploratory (§5), and three confounds remain:
 
 - Nine of the 11 single-agent path tasks are in-domain for the video model.
 - The language models see the first frame at 512² to match video generation. In earlier 97-task runs, Qwen3.6-27B solved 56.0% of pixel-answer tasks with 1024² input, compared with 38.9% at 512² (pooled over prompts).
+- The text rates are decision-level. In the 18 non-pixel selection tasks, the video must also draw its mark, and the v2 scorer checks that the rest of the scene is unchanged (many also check the size of the mark and penalize stray marks); a text answer faces none of these checks.
 
 <SPGroupsFigure>
 
@@ -218,7 +219,8 @@ Text grades do not depend on the threshold, so the change in the 27B difference 
 
 ## 5 Limitations
 
-- **Training and scoring differ.** The video models were fine-tuned on VBVR-Pro-SFT, and the language models are zero-shot. Video receives a trajectory score with partial credit; text receives a binary grade on the final answer. Reporting two thresholds shows the size of this effect but does not remove it.
+- **Text is graded on the decision only.** The v2 scorer also grades the rendered solution. In the scorer code (commit 95265d0), 92 of the 95 tasks check that the rest of the scene is unchanged, and in 94 tasks a video with the correct decision that fails the other checks cannot reach v2 ≥ 0.9 (in at least 86, not even v2 ≥ 0.7). For example, the stable-sort task (G-3) credits the order only if every original object is still found unchanged in the final frame. A text success therefore assumes that rendering the answer would always succeed. How much text accuracy would drop is not known: code that edits the first frame can keep the rest of the scene exactly, so preservation may be easier for a program than for a video model. The cost gap is less sensitive: 2,000 tokens of rendering code per answer would lower the FLOPs ratio to about 200× (5B) and 460× (27B). The per-task reading of the scorers is in the code release ([`results/scorer_audit.csv`](https://github.com/EvolvingLMMs-Lab/symbols-or-pixels/blob/main/results/scorer_audit.csv)).
+- **Training and partial credit differ.** The video models were fine-tuned on VBVR-Pro-SFT, and the language models are zero-shot. The v2 score gives partial credit along the trajectory, while text receives a binary grade. Reporting two thresholds shows the size of this effect but does not remove it.
 - **In-domain samples overlap with the training data.** Of 235 in-domain samples checked, 168 have an identical counterpart in VBVR-Pro-SFT. G5's mean v2 score on these samples is no higher than on other samples of the same tasks (difference −0.007); this check does not rule out other effects of the overlap.
 - **The G27 reproduction is slightly low.** G27 scores 0.652 overall against 0.670 on its model card, and 0.773 against 0.808 in-domain ([Table 2](#tab-align)). This could shift the in-domain comparison by a few points.
 - **Subgroup analyses are exploratory.** The answer-kind split was defined after the zero-shot runs, the single-agent path group has only 11 tasks, and subgroup CIs are not adjusted for multiple comparisons.
@@ -227,12 +229,13 @@ Text grades do not depend on the threshold, so the change in the 27B difference 
 
 ## 6 Conclusion
 
-On 475 paired VBVR-Pro-Bench samples, text answers take 480× (5B) and 1,026× (27B) fewer forward FLOPs than generated videos, and at v2 ≥ 0.9 their solve rates do not differ significantly. At v2 ≥ 0.7, video solves more samples, and the 27B difference (−13.3 pp) is significant; it comes from tasks seen during video fine-tuning. By answer type, text solves more non-pixel answers at v2 ≥ 0.9, and video solves more single-agent paths (27B, v2 ≥ 0.9) and pixel-position answers (27B, v2 ≥ 0.7).
+On 475 paired VBVR-Pro-Bench samples, text answers take 480× (5B) and 1,026× (27B) fewer forward FLOPs than generated videos, and at v2 ≥ 0.9 their solve rates do not differ significantly. The text side is graded on the decision only, while the video must also render it, so this comparison favors text by an amount we have not measured. At v2 ≥ 0.7, video solves more samples, and the 27B difference (−13.3 pp) is significant; it comes from tasks seen during video fine-tuning. By answer type, text solves more non-pixel answers at v2 ≥ 0.9, and video solves more single-agent paths (27B, v2 ≥ 0.9) and pixel-position answers (27B, v2 ≥ 0.7).
 
-Two experiments would test these conclusions more directly:
+Three experiments would test these conclusions more directly:
 
-- **A controlled test of representation.** Fine-tune the language model on VBVR-Pro-SFT and grade both methods with the same final-state grader.
-- **A combined solver.** Use text for discrete targets and video for localization and paths. At 27B, the oracle rate (68.2%, compared with 45.9% for text alone) bounds what such a solver could gain.
+- **Text that renders its answer.** The language model writes code that turns the first frame into the solution video, which is scored with the same v2 scorer and thresholds. Both sides are then graded on task completion, and keeping the ANSWER line separates decision errors from rendering errors.
+- **Matched training.** Fine-tune the language model on VBVR-Pro-SFT.
+- **A combined solver.** Use text for discrete targets and video for localization and paths. At 27B, the oracle rate (68.2%, compared with 45.9% for text alone, with text counted at the decision level) indicates the possible gain.
 
 ---
 
