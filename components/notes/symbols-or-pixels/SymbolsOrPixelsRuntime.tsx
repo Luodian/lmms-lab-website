@@ -32,9 +32,17 @@ export function SymbolsOrPixelsRuntime() {
 		// The site header is sticky; the Figures 2-5 control bar sticks right below it.
 		const root = document.documentElement;
 		const header = document.querySelector("header");
-		const setStickyTop = () => root.style.setProperty("--sp-sticky-top", `${header ? header.getBoundingClientRect().height : 0}px`);
+		const bar = document.querySelector(".sp-config");
+		const setStickyTop = () => {
+			root.style.setProperty("--sp-sticky-top", `${header ? header.getBoundingClientRect().height : 0}px`);
+			// Anchor targets under the stuck bar leave room for it; its height depends on how its controls wrap.
+			root.style.setProperty("--sp-bar-h", `${bar ? bar.getBoundingClientRect().height : 0}px`);
+		};
 		setStickyTop();
 		window.addEventListener("resize", setStickyTop);
+		document.fonts?.ready.then(() => {
+			if (!cancelled) setStickyTop();
+		});
 
 		// Hovering a note marker previews the note text.
 		document.querySelectorAll<HTMLAnchorElement>(".sp-note-ref a").forEach((a) => {
@@ -57,6 +65,7 @@ export function SymbolsOrPixelsRuntime() {
 			cancelled = true;
 			window.removeEventListener("resize", setStickyTop);
 			root.style.removeProperty("--sp-sticky-top");
+			root.style.removeProperty("--sp-bar-h");
 			if (unmount) unmount();
 		};
 	}, []);

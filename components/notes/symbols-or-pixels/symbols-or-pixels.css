@@ -976,8 +976,17 @@
 	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 16px);
 }
 
-.sp-contrast :is(h3, h4) {
-	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 80px);
+/* Anchor jumps: figures clear the site header; inside Figures 2-5, headings and figures also clear the
+   stuck control bar (--sp-bar-h is its measured height, set by SymbolsOrPixelsRuntime). */
+.sp-fig {
+	scroll-margin-top: calc(var(--sp-sticky-top, 88px) + 16px);
+}
+
+@media (min-width: 720px) {
+	.blog-prose:has(.sp-fig) .sp-contrast :is(h3, h4),
+	.sp-contrast .sp-fig {
+		scroll-margin-top: calc(var(--sp-sticky-top, 88px) + var(--sp-bar-h, 64px) + 16px);
+	}
 }
 
 .sp-n-lang,
