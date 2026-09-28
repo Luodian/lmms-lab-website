@@ -132,7 +132,7 @@ FLOPs count arithmetic only. Text decoding is memory-bound, so wall-clock ratios
 
 ## 4 Results
 
-### 4.1 Text needs far fewer FLOPs per answer
+### 4.1 Inference compute
 
 With the layout prompt, a text answer takes 1.2×10<sup>13</sup> forward FLOPs at 4B and 8.8×10<sup>13</sup> at 27B. Generating one video takes 5.8×10<sup>15</sup> (G5) and 9.0×10<sup>16</sup> (G27), so text needs **480× and 1,026× fewer FLOPs** ([Figure 1](#fig-cost), [Table 3](#tab-main)). The video model runs 100 DiT passes over the full latent video (50 steps, two passes each); the language model encodes one frame and decodes one answer.
 
@@ -151,7 +151,7 @@ Normalized by accuracy, text needs 597× (5B) and 1,147× (27B) fewer FLOPs per 
 
 </div>
 
-### 4.2 Solve rates depend on the threshold and the prompt
+### 4.2 Aggregate solve rates
 
 At v2 ≥ 0.9 with the layout prompt, text solves 27.8% of samples at 5B (video: 22.3%) and 45.9% at 27B (video: 41.0%). The paired differences, +5.5 pp \[−4.0, +14.9\] and +4.8 pp \[−6.5, +16.4\], are not significant ([Table 3](#tab-main)). The two rates measure different things: the text grade checks only the decision, while the v2 score also depends on how the video renders it (§5).
 
@@ -163,7 +163,7 @@ The layout prompt is also not the strongest text condition. With the direct prom
 
 <SPConfigBar />
 
-### 4.3 Results by answer type
+### 4.3 Breakdown by task group
 
 The aggregate rates combine answer types on which the two methods differ ([Figure 2](#fig-groups)). With the layout prompt:
 
@@ -183,7 +183,7 @@ These splits are exploratory (§5), and three confounds remain:
 
 </SPGroupsFigure>
 
-### 4.4 The two methods solve different samples
+### 4.4 Sample-level overlap
 
 At 27B and v2 ≥ 0.9, 89 of the 475 samples are solved by both methods, 129 by text only, 106 by video only, and 151 by neither ([Figure 3](#fig-agree)). An oracle that selects the successful output for each sample would solve 68.2% (324 of 475), compared with 45.9% for text, the better single method. At 5B, the corresponding rates are 43.8% and 27.8%. These oracle rates are upper bounds; we do not evaluate a method that chooses between text and video.
 
@@ -195,7 +195,7 @@ Samples solved by only one method split by answer type. On non-pixel answers, 85
 
 </SPAgreeFigure>
 
-### 4.5 The two methods fail differently
+### 4.5 Error analysis
 
 - **Text (Qwen3.6-27B, layout prompt).** 24.8% of answers reach the 2,048-token limit before giving a final answer, and 29.3% are parsed but wrong ([Figure 4](#fig-fail)). The direct prompt lowers truncation to 19.6%.
 - **Video (G27).** 86 of 475 samples (18.1%) score between 0.7 and 0.9.
@@ -208,7 +208,7 @@ Text grades do not depend on the threshold, so the change in the 27B difference 
 
 </SPFailFigure>
 
-### 4.6 Inspecting paired outputs
+### 4.6 Qualitative examples
 
 [Figure 5](#fig-explorer) shows, for the same samples, the generated videos next to the language model's layout, reasoning, and final answer. It can be used to check whether a reported success reflects the intended solution, a localization error, or a video score close to the threshold.
 
