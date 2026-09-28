@@ -7,6 +7,8 @@ tags: ["research", "reasoning", "video generation"]
 
 <SPRuntime />
 
+<ResourceCard title="Code and results" description="Inference, grading and plotting scripts, and per-sample results." type="github" label="EvolvingLMMs-Lab/symbols-or-pixels" url="https://github.com/EvolvingLMMs-Lab/symbols-or-pixels" />
+
 ## Abstract
 
 We compare two ways of answering the same visual reasoning problem: a video model renders the solution, and a language model states it in text. We pair the released VBVR-Pro video models (5B and 27B total parameters) with zero-shot Qwen language models of similar size and evaluate both on 475 VBVR-Pro-Bench samples (95 tasks).
@@ -17,8 +19,6 @@ We compare two ways of answering the same visual reasoning problem: a video mode
 - **Answer type (exploratory).** At v2 ≥ 0.9, text has higher solve rates on non-pixel answers at both scales, and video on single-agent paths at 27B; on the text side these are decision-level results (see below).
 
 The comparison is between systems as released and does not isolate the effect of representation. The video models were fine-tuned on VBVR-Pro-SFT, and the language models are zero-shot. The two sides are also graded on different things: a text answer only states the decision, while the v2 score also checks how the video renders it (in 92 of the 95 tasks, that the rest of the scene stays unchanged). A text success therefore assumes that rendering the answer would always succeed.
-
-**Code and results:** [EvolvingLMMs-Lab/symbols-or-pixels](https://github.com/EvolvingLMMs-Lab/symbols-or-pixels) (inference, grading, and plotting scripts, with per-sample results).
 
 <SPCostFigure>
 
