@@ -138,8 +138,9 @@ export function SPConfigBar() {
 					label="Pair"
 					pressed="27B"
 					options={[
-						["5B", "5B: G5 vs Qwen3.5-4B"],
-						["27B", "27B: G27 vs Qwen3.6-27B"],
+						// Non-breaking hyphens keep model names whole when the buttons wrap on phones.
+						["5B", "5B: G5 vs Qwen3.5‑4B"],
+						["27B", "27B: G27 vs Qwen3.6‑27B"],
 					]}
 				/>
 			</span>
