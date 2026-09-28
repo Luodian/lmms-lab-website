@@ -130,7 +130,9 @@ export function mount(D, base) {
       var x = X(xOf(a)), y = Y(sv.rate);
       var g = svg('g', { 'class': 'mark' }, s);
       var col = a.kind === 'video' ? 'video' : 'lang';
-      svg('line', { x1: x, x2: x, y1: Y(sv.ci[0]), y2: Y(sv.ci[1]), 'class': 's-' + col, 'stroke-width': 1.6, opacity: 0.55 }, g);
+      // One path for the whisker and its end caps, so the translucent stroke does not double up at the joins.
+      var ya = Y(sv.ci[0]), yb = Y(sv.ci[1]);
+      svg('path', { d: 'M' + (x - 4) + ',' + ya + 'H' + (x + 4) + 'M' + x + ',' + ya + 'V' + yb + 'M' + (x - 4) + ',' + yb + 'H' + (x + 4), 'class': 's-' + col, fill: 'none', 'stroke-width': 1.6, opacity: 0.55 }, g);
       if (a.kind === 'video') {
         if (mode === 'batched') {
           var xb = X(a.bound);
@@ -203,7 +205,8 @@ export function mount(D, base) {
       var sub = svg('tspan', { 'class': 'row-sub' }, lt);
       sub.textContent = meta.tasks + ' tasks';
       stext({ x: W - (L.narrow ? 10 : 0), y: labY, 'class': 'row-val', 'text-anchor': 'end' }, grp, pts(g.diff) + ' ' + ciPts(g.ci));
-      svg('line', { x1: X(g.ci[0]), x2: X(g.ci[1]), y1: cy, y2: cy, 'class': 's-' + col, 'stroke-width': 2.4, 'stroke-linecap': 'round' }, grp);
+      var xa = X(g.ci[0]), xb = X(g.ci[1]);
+      svg('path', { d: 'M' + xa + ',' + (cy - 5) + 'V' + (cy + 5) + 'M' + xa + ',' + cy + 'H' + xb + 'M' + xb + ',' + (cy - 5) + 'V' + (cy + 5), 'class': 's-' + col, fill: 'none', 'stroke-width': 2.4 }, grp);
       svg('circle', { cx: X(g.diff), cy: cy, r: 5.5, 'class': 'c-' + col, style: 'stroke: var(--surface)', 'stroke-width': 2 }, grp);
       svg('circle', { cx: X(g.diff), cy: cy, r: 9, 'class': 'focus-ring' }, grp);
       bindTip(grp, function () {
