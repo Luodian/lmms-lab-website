@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { LuImageDown, LuLink, LuTable } from "react-icons/lu";
 import "./symbols-or-pixels.css";
 import { PILOT_SVG, PRETRAIN_SVG } from "./static-charts";
 
@@ -36,18 +37,47 @@ const THRESHOLDS: Option[] = [
 	["0.7", "v2 ≥ 0.7"],
 ];
 
+// Figure 1 chips, in FLOPs order: [model id in data.json, label, method].
+const COST_MODELS: [id: string, label: string, kind: "lang" | "video"][] = [
+	["S4", "Qwen3.5-4B", "lang"],
+	["S9", "Qwen3.5-9B", "lang"],
+	["S27", "Qwen3.6-27B", "lang"],
+	["G5", "G5", "video"],
+	["G27", "G27", "video"],
+];
+
 export function SPCostFigure({ children }: { children: ReactNode }) {
 	return (
 		<figure id="fig-cost" className="sp-fig sp-wide">
-			<div className="fig-body">
-				<div className="fig-head">
-					<div className="controls">
-						<span className="ctl">
-							Video threshold
-							<Seg k="costCut" label="Video threshold" pressed="0.9" options={THRESHOLDS} />
-						</span>
+			<div className="fig-body cost-body">
+				<div className="cost-tabs" role="tablist" aria-label="Video threshold">
+					{THRESHOLDS.map(([v], i) => (
+						<button key={v} type="button" role="tab" data-cut={v} aria-selected={i === 0} aria-controls="cost-panel" tabIndex={i === 0 ? 0 : -1}>
+							{i === 0 ? "Strict" : "Lenient"}: v2 ≥ {v}
+						</button>
+					))}
+				</div>
+				<div className="cost-panel" id="cost-panel" role="tabpanel">
+					<div className="cost-head">
+						<div>
+							<p className="cost-title">Solve rate vs. forward FLOPs per answer</p>
+							<p className="cost-sub" id="cost-sub">
+								95 tasks × 5 samples · a video counts as solved at v2 ≥ 0.9 · text is graded on the decision
+							</p>
+						</div>
+						<div className="cost-tools">
+							<button type="button" className="cost-tool" data-act="link" aria-label="Copy a link to this figure" title="Copy link">
+								<LuLink aria-hidden="true" />
+							</button>
+							<button type="button" className="cost-tool" data-act="png" aria-label="Download the chart as a PNG image" title="Download PNG">
+								<LuImageDown aria-hidden="true" />
+							</button>
+							<button type="button" className="cost-tool" data-act="table" aria-pressed="false" aria-label="Show the data table" title="Show table">
+								<LuTable aria-hidden="true" />
+							</button>
+						</div>
 					</div>
-					<div className="legend" aria-hidden="true">
+					<div className="legend cost-key" aria-hidden="true">
 						<span>
 							<Swatch style={{ background: "var(--video-mark)" }} />
 							Video, VBVR-Pro fine-tuned
@@ -60,10 +90,28 @@ export function SPCostFigure({ children }: { children: ReactNode }) {
 							<Swatch className="sw ring" />
 							Text, direct prompt
 						</span>
+						<span>
+							<Swatch className="sw line" />
+							Pareto frontier
+						</span>
+						<span>
+							<Swatch className="sw line dash" />
+							Size-matched pair
+						</span>
 					</div>
-				</div>
-				<div className="plot" id="plot-cost">
-					<Loading />
+					<div className="cost-chips" role="group" aria-label="Highlight models">
+						{COST_MODELS.map(([id, label, kind]) => (
+							<button key={id} type="button" data-model={id} aria-pressed="false">
+								<Swatch className={kind === "lang" ? "sw dot" : "sw"} style={{ background: `var(--${kind}-mark)` }} />
+								{label}
+							</button>
+						))}
+					</div>
+					<div className="plot" id="plot-cost">
+						<Loading />
+					</div>
+					<div className="cost-table sp-table" id="cost-table" hidden />
+					<p className="cost-status" id="cost-status" aria-live="polite" />
 				</div>
 			</div>
 			<Caption>{children}</Caption>
