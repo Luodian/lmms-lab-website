@@ -639,18 +639,16 @@ export function mount(D, base) {
   /* Figure 5: explorer */
   var picker = document.getElementById('ex-pick');
   picker.textContent = '';
+  // One example per outcome of the primary configuration (e.pick = e.cell), plus one near-miss video.
+  function pickName(e) {
+    return e.pick === 'near_miss' ? 'Near-miss video' : CELLS.filter(function (c) { return c[0] === e.cell; })[0][1];
+  }
   (function buildPicker() {
-    CELLS.forEach(function (c) {
-      var og = document.createElement('optgroup');
-      og.label = c[1] + ' (27B, layout, v2 ≥ 0.9)';
-      D.examples.forEach(function (e, i) {
-        if (e.cell !== c[0]) return;
-        var o = document.createElement('option');
-        o.value = String(i);
-        o.textContent = e.id + ' #' + e.idx + ' · ' + e.name + ' · ' + (e.split === 'in' ? 'in-domain' : 'out-of-domain');
-        og.appendChild(o);
-      });
-      picker.appendChild(og);
+    D.examples.forEach(function (e, i) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = pickName(e) + ' · ' + e.id + ' #' + e.idx + ' · ' + e.name;
+      picker.appendChild(o);
     });
     picker.addEventListener('change', function () { state.ex = parseInt(picker.value, 10); state.task = D.examples[state.ex].task; renderExplorer(); markTask(); }, SIG);
     var order = Array.prototype.map.call(picker.querySelectorAll('option'), function (o) { return parseInt(o.value, 10); });
@@ -674,8 +672,8 @@ export function mount(D, base) {
   function renderExplorer() {
     var e = D.examples[state.ex], cut = parseFloat(state.cut);
     picker.value = String(state.ex);
-    var cellName = CELLS.filter(function (c) { return c[0] === e.cell; })[0][1].toLowerCase();
-    document.getElementById('ex-why').textContent = e.id + ' #' + e.idx + ', ' + D.classes[e.cls].toLowerCase() + ', ' + (e.split === 'in' ? 'in-domain' : 'out-of-domain') + '. Selected as “' + cellName + '” in the primary configuration.';
+    var why = e.pick === 'near_miss' ? 'the near-miss video (G27 v2 between 0.7 and 0.9)' : '“' + pickName(e).toLowerCase() + '”';
+    document.getElementById('ex-why').textContent = e.id + ' #' + e.idx + ', ' + D.classes[e.cls].toLowerCase() + ', ' + (e.split === 'in' ? 'in-domain' : 'out-of-domain') + '. Selected as ' + why + ' in the primary configuration.';
     var img = document.getElementById('ex-first');
     img.src = base + e.media.first;
     img.alt = 'First frame of ' + e.id + ' sample ' + e.idx;

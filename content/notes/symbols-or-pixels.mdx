@@ -210,11 +210,11 @@ Text grades do not depend on the threshold, so the change in the 27B difference 
 
 ### 4.6 Qualitative examples
 
-[Figure 5](#fig-explorer) shows, for the same samples, the generated videos next to the language model's layout, reasoning, and final answer. It can be used to check whether a reported success reflects the intended solution, a localization error, or a video score close to the threshold.
+[Figure 5](#fig-explorer) shows five paired examples, each with the generated videos next to the language model's layout, reasoning, and final answer for the same sample. It can be used to check whether a reported success reflects the intended solution, a localization error, or a video score close to the threshold.
 
 <SPExplorerFigure>
 
-**Figure 5:** Task map and 31 paired examples across task classes and outcomes. The examples were selected by a fixed rule in the primary configuration (27B, layout prompt, v2 ≥ 0.9); changing the controls relabels the outcomes but keeps the same examples.
+**Figure 5:** Task map and five paired examples. The examples were selected by a fixed rule in the primary configuration (27B, layout prompt, v2 ≥ 0.9): one for each outcome (both solve, text only, video only, neither), each from a different task class, and one video that scores between 0.7 and 0.9. Changing the controls relabels the outcomes but keeps the same examples.
 
 </SPExplorerFigure>
 
